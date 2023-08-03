@@ -1,8 +1,12 @@
 package org.folio.search.controller;
 
+import static java.util.Objects.nonNull;
+
 import lombok.RequiredArgsConstructor;
 import org.folio.search.domain.dto.Authority;
 import org.folio.search.domain.dto.AuthoritySearchResult;
+import org.folio.search.domain.dto.Bibframe;
+import org.folio.search.domain.dto.BibframeSearchResult;
 import org.folio.search.domain.dto.Instance;
 import org.folio.search.domain.dto.InstanceSearchResult;
 import org.folio.search.model.service.CqlSearchRequest;
@@ -45,5 +49,24 @@ public class SearchController implements SearchApi {
     return ResponseEntity.ok(new AuthoritySearchResult()
       .authorities(result.getRecords())
       .totalRecords(result.getTotalRecords()));
+  }
+
+  @Override
+  public ResponseEntity<BibframeSearchResult> searchBibframe(String tenant, String query, Integer limit,
+                                                             Integer offset) {
+    tenant = tenantProvider.getTenant(tenant);
+    limit = nonNull(limit) ? limit : 10;
+    var searchRequest = CqlSearchRequest.of(
+      Bibframe.class, tenant, query, limit, offset, true, true);
+    var result = searchService.search(searchRequest);
+    return ResponseEntity.ok(new BibframeSearchResult()
+      .searchQuery(query)
+      .content(result.getRecords())
+      .sortBy("publications.dateOfPublication")
+      .sortOrder(BibframeSearchResult.SortOrderEnum.DESC)
+      .pageNumber(0)
+      .totalPages(result.getTotalRecords() / limit)
+      .totalElements(result.getTotalRecords())
+    );
   }
 }

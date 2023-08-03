@@ -23,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TenantScopedExecutionServiceTest {
 
   @InjectMocks
-  private TenantScopedExecutionService tenantScopedExecutionService;
+  private TenantScopedExecutionServiceImpl tenantScopedExecutionService;
   @Mock
   private FolioExecutionContextBuilder contextBuilder;
   @Mock

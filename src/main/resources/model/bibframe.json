@@ -1,0 +1,97 @@
+{
+  "name": "bibframe",
+  "eventBodyJavaClass": "org.folio.search.domain.dto.Bibframe",
+  "reindexSupported": true,
+  "languageSourcePaths": [ "$.languages" ],
+  "fieldTypes": {
+    "suppress": {
+      "searchTypes": [ "facet", "filter" ],
+      "index": "bool",
+      "default": false
+    },
+    "visibleSuppress": {
+      "searchTypes": [ "facet", "filter" ],
+      "index": "bool",
+      "default": false,
+      "showInResponse": [ "search" ]
+    }
+  },
+  "fields": {
+    "tenantId": {
+      "index": "keyword",
+      "searchTypes": [ "facet", "filter" ],
+      "showInResponse": [ "search" ]
+    },
+    "id": {
+      "index": "keyword",
+      "showInResponse": [ "search" ]
+    },
+    "title": {
+      "searchTypes": "sort",
+      "searchAliases": [ "title", "keyword" ],
+      "index": "multilang",
+      "showInResponse": [ "search" ]
+    },
+    "identifiers": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "searchAliases": [ "keyword" ],
+          "index": "whitespace"
+        },
+        "type": {
+          "index": "keyword"
+        }
+      }
+    },
+    "contributors": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "searchAliases": [ "contributors", "keyword" ],
+          "index": "standard",
+          "showInResponse": [ "search" ]
+        },
+        "primary": {
+          "index": "bool",
+          "showInResponse": [ "search" ]
+        },
+        "authorityId": {
+          "index": "keyword",
+          "searchAliases": [ "authorityId" ],
+          "showInResponse": [ "search" ]
+        }
+      }
+    },
+    "publications": {
+      "type": "object",
+      "properties": {
+        "publisher": {
+          "searchAliases": [ "publisher" ],
+          "index": "multilang",
+          "showInResponse": [ "search" ]
+        },
+        "dateOfPublication": {
+          "index": "date",
+          "showInResponse": [ "search" ]
+        }
+      }
+    },
+    "editionStatement": {
+      "searchTypes": "sort",
+      "searchAliases": [ "editionStatement", "keyword" ],
+      "index": "multilang",
+      "showInResponse": [ "search" ]
+    }
+  },
+  "searchFields": {
+    "isbn": {
+      "type": "search",
+      "processor": "bibframeIsbnProcessor",
+      "searchTermProcessor": "bibframeIsbnSearchTermProcessor",
+      "index": "standard",
+      "indexPlainValue": false
+    }
+  },
+  "indexMappings": { }
+}

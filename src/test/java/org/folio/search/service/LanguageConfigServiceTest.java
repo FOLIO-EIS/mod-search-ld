@@ -44,7 +44,7 @@ class LanguageConfigServiceTest {
   @Mock
   private LocalSearchFieldProvider searchFieldProvider;
   @Mock
-  private TenantScopedExecutionService tenantScopedExecutionService;
+  private TenantScopedExecutionServiceImpl tenantScopedExecutionService;
   @Mock
   private SearchConfigurationProperties searchConfigurationProperties;
 

@@ -31,7 +31,7 @@ import org.folio.search.domain.dto.Item;
 import org.folio.search.domain.dto.ResourceEvent;
 import org.folio.search.model.client.CqlQueryParam;
 import org.folio.search.model.service.ResultList;
-import org.folio.search.service.TenantScopedExecutionService;
+import org.folio.search.service.TenantScopedExecutionServiceImpl;
 import org.folio.spring.test.type.UnitTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +48,7 @@ class ResourceFetchServiceTest {
   @InjectMocks
   private ResourceFetchService resourceFetchService;
   @Mock
-  private TenantScopedExecutionService executionService;
+  private TenantScopedExecutionServiceImpl executionService;
   @Mock
   private InventoryViewClient inventoryClient;
 
