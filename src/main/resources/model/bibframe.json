@@ -91,6 +91,11 @@
       "searchTermProcessor": "bibframeIsbnSearchTermProcessor",
       "index": "standard",
       "indexPlainValue": false
+    },
+    "lccn": {
+      "type": "search",
+      "index": "keyword",
+      "processor": "bibframeLccnProcessor"
     }
   },
   "indexMappings": { }
