@@ -39,6 +39,7 @@ import org.folio.search.repository.ResourceRepository;
 import org.folio.search.service.converter.MultiTenantSearchDocumentConverter;
 import org.folio.search.service.metadata.ResourceDescriptionService;
 import org.folio.search.support.base.TenantConfig;
+import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.test.type.UnitTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,6 +73,8 @@ class ResourceServiceTest {
   private TestRepository testRepository;
   @MockBean
   private SearchConfigurationProperties searchConfig;
+  @MockBean
+  private FolioExecutionContext folioExecutionContext;
   @SpyBean
   private ResourceService indexService;
 

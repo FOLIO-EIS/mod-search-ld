@@ -73,6 +73,7 @@ import org.springframework.test.context.ActiveProfiles;
     "KAFKA_AUTHORITIES_CONSUMER_PATTERN=(${folio.environment}\\.)(.*\\.)inventory\\.authority",
     "KAFKA_CONTRIBUTORS_CONSUMER_PATTERN=(${folio.environment}\\.)(.*\\.)search\\.instance-contributor",
     "KAFKA_SUBJECTS_CONSUMER_PATTERN=(${folio.environment}\\.)(.*\\.)search\\.instance-subject",
+    "KAFKA_BIBFRAME_CONSUMER_PATTERN=(${folio.environment}\\.)(.*\\.)search\\.bibframe",
     "folio.environment=${ENV:folio}",
     "folio.kafka.retry-interval-ms=10",
     "folio.kafka.retry-delivery-attempts=3",
@@ -81,6 +82,7 @@ import org.springframework.test.context.ActiveProfiles;
     "folio.kafka.listener.events.group-id=${folio.environment}-test-group",
     "folio.kafka.listener.authorities.group-id=${folio.environment}-authority-test-group",
     "folio.kafka.listener.contributors.group-id=${folio.environment}-contributor-test-group",
+    "folio.kafka.listener.bibframe.group-id=${folio.environment}-bibframe-test-group",
     "logging.level.org.apache.kafka.clients.consumer=warn"
   })
 class KafkaMessageListenerIT {
