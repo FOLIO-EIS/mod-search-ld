@@ -2,7 +2,6 @@ package org.folio.search.service.consortia;
 
 import static org.folio.search.configuration.SearchCacheNames.USER_TENANTS_CACHE;
 
-import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.folio.search.client.UserTenantsClient;

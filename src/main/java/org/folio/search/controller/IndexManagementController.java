@@ -1,5 +1,7 @@
 package org.folio.search.controller;
 
+import static java.util.Objects.isNull;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -14,6 +16,7 @@ import org.folio.search.domain.dto.UpdateMappingsRequest;
 import org.folio.search.rest.resource.IndexManagementApi;
 import org.folio.search.service.IndexService;
 import org.folio.search.service.ResourceService;
+import org.folio.spring.FolioExecutionContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +34,7 @@ public class IndexManagementController implements IndexManagementApi {
 
   private final IndexService indexService;
   private final ResourceService resourceService;
+  private final FolioExecutionContext folioExecutionContext;
 
   @Override
   public ResponseEntity<FolioCreateIndexResponse> createIndices(String tenantId, CreateIndexRequest request) {
@@ -39,6 +43,10 @@ public class IndexManagementController implements IndexManagementApi {
 
   @Override
   public ResponseEntity<FolioIndexOperationResponse> indexRecords(List<ResourceEvent> events) {
+    var tenant = folioExecutionContext.getTenantId();
+    events.stream()
+      .filter(e -> isNull(e.getTenant()))
+      .forEach(e -> e.setTenant(tenant));
     return ResponseEntity.ok(resourceService.indexResources(events));
   }
 

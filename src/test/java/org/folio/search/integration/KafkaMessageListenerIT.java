@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 import static org.awaitility.Durations.FIVE_SECONDS;
 import static org.awaitility.Durations.ONE_HUNDRED_MILLISECONDS;
 import static org.awaitility.Durations.ONE_MINUTE;
+import static org.folio.search.utils.Constants.FOLIO_PROFILE;
 import static org.folio.search.utils.KafkaConstants.AUTHORITY_LISTENER_ID;
 import static org.folio.search.utils.KafkaConstants.EVENT_LISTENER_ID;
 import static org.folio.search.utils.SearchResponseHelper.getSuccessIndexOperationResponse;
@@ -58,9 +59,11 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.test.context.ActiveProfiles;
 
 @EnableKafka
 @IntegrationTest
+@ActiveProfiles(FOLIO_PROFILE)
 @Import(KafkaListenerTestConfiguration.class)
 @SpringBootTest(classes = {KafkaMessageListener.class, FolioKafkaProperties.class, StreamIdsProperties.class},
   properties = {

@@ -31,6 +31,7 @@ import org.folio.search.domain.dto.UpdateMappingsRequest;
 import org.folio.search.exception.SearchOperationException;
 import org.folio.search.service.IndexService;
 import org.folio.search.service.ResourceService;
+import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.test.type.UnitTest;
 import org.hibernate.validator.internal.engine.ConstraintViolationImpl;
@@ -60,6 +61,8 @@ class IndexManagementControllerTest {
   private IndexService indexService;
   @MockBean
   private ResourceService resourceService;
+  @MockBean
+  private FolioExecutionContext folioExecutionContext;
 
   @Test
   void createIndex_positive() throws Exception {
