@@ -142,7 +142,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/x-okapi-tenant-header'
         - $ref: '#/components/parameters/cql-query'
-        - $ref: '#/components/parameters/limit-param'
+        - $ref: '#/components/parameters/bibframe-limit-param'
         - $ref: '#/components/parameters/offset-param'
       responses:
         '200':
@@ -672,6 +672,15 @@ components:
         minimum: 0
         maximum: 500
         default: 100
+    bibframe-limit-param:
+      in: query
+      name: limit
+      description: Limit the number of elements returned in the response.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 100
+        default: 10
     browse-limit-param:
       in: query
       name: limit

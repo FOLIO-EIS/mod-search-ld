@@ -17,11 +17,6 @@
     }
   },
   "fields": {
-    "tenantId": {
-      "index": "keyword",
-      "searchTypes": [ "facet", "filter" ],
-      "showInResponse": [ "search" ]
-    },
     "id": {
       "index": "keyword",
       "showInResponse": [ "search" ]
