@@ -1,5 +1,6 @@
 package org.folio.search.service;
 
+import static java.util.Objects.isNull;
 import static java.util.stream.Collectors.flatMapping;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
@@ -41,6 +42,7 @@ import org.folio.search.repository.ResourceRepository;
 import org.folio.search.service.converter.MultiTenantSearchDocumentConverter;
 import org.folio.search.service.metadata.ResourceDescriptionService;
 import org.folio.search.utils.SearchUtils;
+import org.folio.spring.FolioExecutionContext;
 import org.springframework.stereotype.Service;
 
 @Log4j2
@@ -59,6 +61,7 @@ public class ResourceService {
   private final MultiTenantSearchDocumentConverter multiTenantSearchDocumentConverter;
   private final Map<String, ResourceRepository> resourceRepositoryBeans;
   private final SearchConfigurationProperties searchConfig;
+  private final FolioExecutionContext folioExecutionContext;
 
   /**
    * Saves list of resources to elasticsearch.
@@ -72,6 +75,11 @@ public class ResourceService {
     if (CollectionUtils.isEmpty(resources)) {
       return getSuccessIndexOperationResponse();
     }
+
+    var tenant = folioExecutionContext.getTenantId();
+    resources.stream()
+      .filter(e -> isNull(e.getTenant()))
+      .forEach(e -> e.setTenant(tenant));
 
     var eventsToIndex = searchConfig.inConsortiaMode()
       ? resources

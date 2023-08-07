@@ -1,0 +1,11 @@
+folio:
+  environment: ${ENV:folio}
+  okapiUrl: ${okapi.url}
+  logging:
+    request:
+      enabled: true
+    feign:
+      enabled: true
+  search-config:
+    search-features:
+      consortium: ${CONSORTIUM_ENABLED:true}

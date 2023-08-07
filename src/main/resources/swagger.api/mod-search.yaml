@@ -133,6 +133,30 @@ paths:
         '500':
           $ref: '#/components/responses/internalServerErrorResponse'
 
+  /search/bibframe:
+    get:
+      operationId: searchBibframe
+      description: Get a list of bibframe records for CQL query
+      tags:
+        - search
+      parameters:
+        - $ref: '#/components/parameters/x-okapi-tenant-header'
+        - $ref: '#/components/parameters/cql-query'
+        - $ref: '#/components/parameters/bibframe-limit-param'
+        - $ref: '#/components/parameters/offset-param'
+      responses:
+        '200':
+          description: 'Bibframe search result'
+          content:
+            application/json:
+              example: examples/bibframeSearchResult.sample
+              schema:
+                $ref: '#/components/schemas/bibframeSearchResult'
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
+
   /search/resources/jobs/{jobId}:
     get:
       operationId: getIdsJob
@@ -613,6 +637,10 @@ components:
     CallNumberType:
       enum: [ lc, dewey, nlm, sudoc, other, local ]
       type: string
+    bibframe:
+      $ref: schemas/bibframe.json
+    bibframeSearchResult:
+      $ref: schemas/response/bibframeSearchResult.json
 
   responses:
     unprocessableEntityResponse:
@@ -644,6 +672,15 @@ components:
         minimum: 0
         maximum: 500
         default: 100
+    bibframe-limit-param:
+      in: query
+      name: limit
+      description: Limit the number of elements returned in the response.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 100
+        default: 10
     browse-limit-param:
       in: query
       name: limit
