@@ -285,6 +285,11 @@
       "description": "Searches authorities by given query"
     },
     {
+      "permissionName": "search.bibframe.collection.get",
+      "displayName": "Search - searches bibframe by given query",
+      "description": "Searches bibframe by given query"
+    },
+    {
       "permissionName": "browse.call-numbers.instances.collection.get",
       "displayName": "Browse - provides collections of browse items for instance by call number",
       "description": "Browse instances by given query"

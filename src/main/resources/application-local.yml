@@ -11,5 +11,11 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  cloud:
+    openfeign:
+      client:
+        config:
+          authn:
+            url: http://localhost:8085
 
 server.port: 8085
