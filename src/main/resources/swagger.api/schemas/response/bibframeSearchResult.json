@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Bibframe search result response",
+  "type": "object",
+  "properties": {
+    "search_query": {
+      "type": "string",
+      "description": "Initial search query"
+    },
+    "content": {
+      "type": "array",
+      "description": "List of bibframe records found",
+      "items": {
+        "$ref": "../bibframe.json"
+      }
+    },
+    "sort_by": {
+      "type": "string",
+      "description": "Name of a field used for sorting, publications.dateOfPublication by default"
+    },
+    "sort_order": {
+      "type": "string",
+      "enum": ["DESC", "ASC"],
+      "description": "Sorting order, DESC by default"
+    },
+    "page_number": {
+      "type": "integer",
+      "description": "Current results page number, 0 by default"
+    },
+    "total_pages": {
+      "type": "integer",
+      "description": "Total pages count"
+    },
+    "total_elements": {
+      "type": "integer",
+      "description": "Total results count"
+    }
+  }
+}
