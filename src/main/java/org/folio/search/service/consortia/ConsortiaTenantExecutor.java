@@ -20,12 +20,7 @@ public class ConsortiaTenantExecutor {
   }
 
   public <T> T execute(String originalTenantId, Supplier<T> operation) {
-    var tenantId = tenantProvider.getTenant(originalTenantId);
-    if (originalTenantId.equals(tenantId)) {
-      return operation.get();
-    } else {
-      return scopedExecutionService.executeSystemUserScoped(tenantId, operation::get);
-    }
+    return operation.get();
   }
 
   public void run(Runnable operation) {
