@@ -556,7 +556,7 @@ public class TestUtils {
   @Data
   @NoArgsConstructor
   @AllArgsConstructor(staticName = "of")
-  public static class TestClass {
+  public static final class TestClass {
     private String field;
   }
 
