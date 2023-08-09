@@ -20,7 +20,7 @@ public class ConsortiaTenantExecutor {
   }
 
   public <T> T execute(String originalTenantId, Supplier<T> operation) {
-      return operation.get();
+    return operation.get();
   }
 
   public void run(Runnable operation) {
