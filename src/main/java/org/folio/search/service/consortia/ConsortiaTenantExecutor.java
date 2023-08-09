@@ -1,5 +1,6 @@
 package org.folio.search.service.consortia;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.folio.spring.FolioExecutionContext;
@@ -20,7 +21,12 @@ public class ConsortiaTenantExecutor {
   }
 
   public <T> T execute(String originalTenantId, Supplier<T> operation) {
-    return operation.get();
+    var tenantId = tenantProvider.getTenant(originalTenantId);
+    if (Objects.equals(originalTenantId, tenantId)) {
+      return operation.get();
+    } else {
+      return scopedExecutionService.executeSystemUserScoped(tenantId, operation::get);
+    }
   }
 
   public void run(Runnable operation) {
