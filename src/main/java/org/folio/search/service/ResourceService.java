@@ -1,11 +1,11 @@
 package org.folio.search.service;
 
-import static java.util.Objects.isNull;
 import static java.util.stream.Collectors.flatMapping;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 import static org.folio.search.model.types.IndexActionType.DELETE;
 import static org.folio.search.model.types.IndexActionType.INDEX;
 import static org.folio.search.utils.LogUtils.collectionToLogMsg;
@@ -77,8 +77,9 @@ public class ResourceService {
     }
 
     var tenant = folioExecutionContext.getTenantId();
+    log.info("Setting {} tenant for incoming to index resources without it", tenant);
     resources.stream()
-      .filter(e -> isNull(e.getTenant()))
+      .filter(e -> isEmpty(e.getTenant()))
       .forEach(e -> e.setTenant(tenant));
 
     var eventsToIndex = searchConfig.inConsortiaMode()
