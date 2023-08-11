@@ -19,3 +19,8 @@ spring:
             url: http://localhost:8085
 
 server.port: 8085
+
+folio:
+  search-config:
+    search-features:
+      consortium: false

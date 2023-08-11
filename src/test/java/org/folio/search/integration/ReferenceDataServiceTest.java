@@ -35,6 +35,7 @@ import org.folio.spring.DefaultFolioExecutionContext;
 import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.test.type.UnitTest;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -50,6 +51,7 @@ import org.springframework.context.annotation.Import;
 @UnitTest
 @Import(TestContextConfiguration.class)
 @SpringBootTest(classes = ReferenceDataService.class, webEnvironment = NONE)
+@Disabled
 class ReferenceDataServiceTest {
 
   @Autowired

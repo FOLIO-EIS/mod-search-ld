@@ -16,7 +16,6 @@ import org.folio.search.exception.RequestValidationException;
 import org.folio.search.model.config.FeatureConfigEntity;
 import org.folio.search.repository.FeatureConfigRepository;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +35,6 @@ public class FeatureConfigService {
    * @return true if feature is enabled for tenant, false - otherwise.
    */
   @Transactional(readOnly = true)
-  @Cacheable(cacheNames = TENANT_FEATURES_CACHE, key = "@folioExecutionContext.tenantId + ':' + #feature.value")
   public boolean isEnabled(TenantConfiguredFeature feature) {
     log.debug("isEnabled:: by [feature.value: {}]", feature.getValue());
     return featureConfigRepository.findById(feature.getValue())
