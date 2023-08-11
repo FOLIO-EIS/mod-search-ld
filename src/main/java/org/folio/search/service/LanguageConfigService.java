@@ -1,5 +1,6 @@
 package org.folio.search.service;
 
+import static org.folio.search.configuration.SearchCacheNames.RESOURCE_LANGUAGE_CACHE;
 import static org.folio.search.converter.LanguageConfigConverter.toLanguageConfig;
 import static org.folio.search.converter.LanguageConfigConverter.toLanguageConfigEntity;
 
@@ -18,6 +19,8 @@ import org.folio.search.exception.ValidationException;
 import org.folio.search.model.config.LanguageConfigEntity;
 import org.folio.search.repository.LanguageConfigRepository;
 import org.folio.search.service.metadata.LocalSearchFieldProvider;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Log4j2
@@ -36,6 +39,7 @@ public class LanguageConfigService {
    * @param languageConfig language config dto as {@link LanguageConfig} object
    * @return created {@link LanguageConfig} dto.
    */
+  @CacheEvict(cacheNames = RESOURCE_LANGUAGE_CACHE, key = "@folioExecutionContext.tenantId")
   public LanguageConfig create(LanguageConfig languageConfig) {
     log.debug("create:: by [languageConfig: {}]", languageConfig);
 
@@ -63,6 +67,7 @@ public class LanguageConfigService {
    * @param languageConfig language config dto as {@link LanguageConfig} object
    * @return updated {@link LanguageConfig} dto.
    */
+  @CacheEvict(cacheNames = RESOURCE_LANGUAGE_CACHE, key = "@folioExecutionContext.tenantId")
   public LanguageConfig update(String code, LanguageConfig languageConfig) {
     log.debug("update:: by [code: {}, languageConfig: {}]", code, languageConfig);
     var entity = toLanguageConfigEntity(languageConfig);
@@ -87,6 +92,7 @@ public class LanguageConfigService {
    *
    * @param code language code as {@link String} object
    */
+  @CacheEvict(cacheNames = RESOURCE_LANGUAGE_CACHE, key = "@folioExecutionContext.tenantId")
   public void delete(String code) {
     log.debug("Attempts to delete languageConfig by [code: {}]", code);
 
@@ -113,6 +119,7 @@ public class LanguageConfigService {
    *
    * @return {@link Set} with language configuration codes.
    */
+  @Cacheable(cacheNames = RESOURCE_LANGUAGE_CACHE, key = "@folioExecutionContext.tenantId")
   public Set<String> getAllLanguageCodes() {
     return getAll().getLanguageConfigs().stream()
       .map(LanguageConfig::getCode)
