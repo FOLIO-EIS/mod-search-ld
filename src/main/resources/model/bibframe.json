@@ -91,6 +91,10 @@
       "type": "search",
       "index": "keyword",
       "processor": "bibframeLccnProcessor"
+    },
+    "title": {
+      "type": "search",
+      "index": "keyword"
     }
   },
   "indexMappings": { }
