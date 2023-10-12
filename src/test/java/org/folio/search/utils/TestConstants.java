@@ -32,6 +32,7 @@ public class TestConstants {
   public static final String INVENTORY_HOLDING_TOPIC = "inventory.holdings-record";
   public static final String INVENTORY_BOUND_WITH_TOPIC = "inventory.bound-with";
   public static final String CONSORTIUM_INSTANCE_TOPIC = "search.consortium.instance";
+  public static final String BIBFRAME_TOPIC = "search.bibframe";
 
   public static final String LCCN_IDENTIFIER_TYPE_ID = randomId();
   public static final String ISSN_IDENTIFIER_TYPE_ID = randomId();
@@ -97,6 +98,10 @@ public class TestConstants {
 
   public static String inventoryBoundWithTopic(String tenantId) {
     return getTopicName(tenantId, INVENTORY_BOUND_WITH_TOPIC);
+  }
+
+  public static String bibframeTopic(String tenantId) {
+    return getTopicName(tenantId, BIBFRAME_TOPIC);
   }
 
   public static String indexName(String tenantId) {

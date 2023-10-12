@@ -8,6 +8,7 @@ import static org.folio.search.domain.dto.ResourceEventType.REINDEX;
 import static org.folio.search.utils.SearchConverterUtils.getEventPayload;
 import static org.folio.search.utils.SearchConverterUtils.getResourceEventId;
 import static org.folio.search.utils.SearchUtils.AUTHORITY_RESOURCE;
+import static org.folio.search.utils.SearchUtils.BIBFRAME_RESOURCE;
 import static org.folio.search.utils.SearchUtils.CONTRIBUTOR_RESOURCE;
 import static org.folio.search.utils.SearchUtils.ID_FIELD;
 import static org.folio.search.utils.SearchUtils.INSTANCE_ID_FIELD;
@@ -147,6 +148,22 @@ public class KafkaMessageListener {
         resourceService::indexConsortiumInstances, KafkaMessageListener::logFailedConsortiumEvent);
       return null;
     }));
+  }
+
+  @KafkaListener(
+    id = KafkaConstants.BIBFRAME_LISTENER_ID,
+    containerFactory = "standardListenerContainerFactory",
+    groupId = "#{folioKafkaProperties.listener['bibframe'].groupId}",
+    concurrency = "#{folioKafkaProperties.listener['bibframe'].concurrency}",
+    topicPattern = "#{folioKafkaProperties.listener['bibframe'].topicPattern}")
+  public void handleBibframeEvents(List<ConsumerRecord<String, ResourceEvent>> consumerRecords) {
+    log.info("Processing bibframe events from Kafka [number of events: {}]", consumerRecords.size());
+    var batch = consumerRecords.stream()
+      .map(ConsumerRecord::value)
+      .map(bibframe -> bibframe.resourceName(BIBFRAME_RESOURCE).id(getResourceEventId(bibframe)))
+      .toList();
+
+    indexResources(batch, resourceService::indexResources);
   }
 
   private void indexResources(List<ResourceEvent> batch, Consumer<List<ResourceEvent>> indexConsumer) {

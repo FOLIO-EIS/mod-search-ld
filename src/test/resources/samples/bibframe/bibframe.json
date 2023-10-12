@@ -1,0 +1,32 @@
+{
+  "id": "123456123456",
+  "titles": [
+    {
+      "value": "titleAbc def",
+      "type": "Main"
+    }
+  ],
+  "identifiers": [
+    {
+      "value": "1234567890123",
+      "type": "ISBN"
+    },
+    {
+      "value": "20232023",
+      "type": "LCCN"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "name",
+      "primary": true
+    }
+  ],
+  "publications": [
+    {
+      "publisher": "publisher",
+      "dateOfPublication": 2023
+    }
+  ],
+  "editionStatement": "1st edition"
+}
