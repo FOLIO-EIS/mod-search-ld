@@ -11,7 +11,7 @@
 
   <name>mod-search-ld</name>
   <groupId>org.folio</groupId>
-  <artifactId>mod-search</artifactId>
+  <artifactId>mod-search-ld</artifactId>
   <version>3.0.0-SNAPSHOT</version>
   <description>FOLIO search service (LD clone)</description>
   <packaging>jar</packaging>
