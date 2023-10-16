@@ -1,0 +1,36 @@
+{
+    "searchQuery": "isbn=1234567890",
+    "content": [
+        {
+            "id": "bibframeId",
+            "titles": [
+                {
+                    "value": "title",
+                    "type": "Main"
+                }
+            ],
+            "identifiers": [
+                {
+                    "value": "1234567890",
+                    "type": "ISBN"
+                }
+            ],
+            "contributors": [
+                {
+                    "name": "name",
+                    "primary": true
+                }
+            ],
+            "publications": [
+                {
+                    "publisher": "publisher",
+                    "dateOfPublication": "2023"
+                }
+            ],
+            "editionStatement": "1st edition"
+        }
+    ],
+    "pageNumber": 0,
+    "totalPages": 0,
+    "totalRecords": 1
+}
