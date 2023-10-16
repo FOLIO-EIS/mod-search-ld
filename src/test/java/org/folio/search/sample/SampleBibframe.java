@@ -13,11 +13,22 @@ public class SampleBibframe {
   private static final Map<String, Object> BIBFRAME_AS_MAP =
     readJsonFromFile("/samples/bibframe/bibframe.json", MAP_TYPE_REFERENCE);
 
+  private static final Map<String, Object> BIBFRAME_2_AS_MAP =
+    readJsonFromFile("/samples/bibframe/bibframe2.json", MAP_TYPE_REFERENCE);
+
   public static Map<String, Object> getBibframeSampleAsMap() {
     return BIBFRAME_AS_MAP;
   }
 
+  public static Map<String, Object> getBibframe2SampleAsMap() {
+    return BIBFRAME_2_AS_MAP;
+  }
+
   public static String getBibframeSampleId() {
     return (String) BIBFRAME_AS_MAP.get("id");
+  }
+
+  public static String getBibframeSample2Id() {
+    return (String) BIBFRAME_2_AS_MAP.get("id");
   }
 }
