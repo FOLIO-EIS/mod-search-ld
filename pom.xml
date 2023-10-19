@@ -9,11 +9,11 @@
     <relativePath />
   </parent>
 
-  <name>mod-search</name>
+  <name>mod-search-ld</name>
   <groupId>org.folio</groupId>
-  <artifactId>mod-search</artifactId>
+  <artifactId>mod-search-ld</artifactId>
   <version>2.0.2-SNAPSHOT</version>
-  <description>FOLIO search service</description>
+  <description>FOLIO search service (LD clone)</description>
   <packaging>jar</packaging>
 
   <licenses>
@@ -49,7 +49,7 @@
     <streamex.version>0.8.1</streamex.version>
 
     <!-- Test dependencies versions -->
-    <testcontainers.version>1.17.6</testcontainers.version>
+    <testcontainers.version>1.19.0</testcontainers.version>
     <wiremock.version>2.27.2</wiremock.version>
     <awaitility.version>4.2.0</awaitility.version>
 
@@ -304,6 +304,7 @@
     <plugins>
 
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-clean-plugin</artifactId>
         <version>${maven-clean-plugin.version}</version>
         <executions>
@@ -334,6 +335,7 @@
       </plugin>
 
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <version>${maven-resources-plugin.version}</version>
         <executions>
@@ -594,7 +596,7 @@
     <url>https://github.com/folio-org/${project.artifactId}</url>
     <connection>scm:git:git://github.com/folio-org/${project.artifactId}.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/${project.artifactId}.git</developerConnection>
-    <tag>release/v2.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
 </project>

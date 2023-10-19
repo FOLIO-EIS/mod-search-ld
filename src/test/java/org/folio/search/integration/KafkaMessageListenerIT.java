@@ -65,11 +65,6 @@ import org.springframework.retry.annotation.EnableRetry;
 @SpringBootTest(classes = {KafkaMessageListener.class, FolioKafkaProperties.class, StreamIdsProperties.class},
   properties = {
     "ENV=kafka-listener-it",
-    "KAFKA_EVENTS_CONSUMER_PATTERN="
-      + "(${folio.environment}\\.)(.*\\.)inventory\\.(instance|holdings-record|item|bound-with)",
-    "KAFKA_AUTHORITIES_CONSUMER_PATTERN=(${folio.environment}\\.)(.*\\.)inventory\\.authority",
-    "KAFKA_CONTRIBUTORS_CONSUMER_PATTERN=(${folio.environment}\\.)(.*\\.)search\\.instance-contributor",
-    "KAFKA_SUBJECTS_CONSUMER_PATTERN=(${folio.environment}\\.)(.*\\.)search\\.instance-subject",
     "folio.environment=${ENV:folio}",
     "folio.kafka.retry-interval-ms=10",
     "folio.kafka.retry-delivery-attempts=3",
@@ -210,7 +205,7 @@ class KafkaMessageListenerIT {
     assertThat(container.getGroupId()).startsWith(KAFKA_LISTENER_IT_ENV);
     kafkaProperties.getListener().values().forEach(
       listenerProperties -> assertThat(listenerProperties.getTopicPattern())
-        .startsWith(String.format("(%s.)(.*.)", KAFKA_LISTENER_IT_ENV)));
+        .startsWith(String.format("(%s\\.)(.*\\.)", KAFKA_LISTENER_IT_ENV)));
   }
 
   private void sendMessagesWithStoppedListenerContainer(List<String> ids, String containerId, String topicName,
