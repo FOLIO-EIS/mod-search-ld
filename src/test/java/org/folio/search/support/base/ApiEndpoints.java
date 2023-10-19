@@ -12,6 +12,10 @@ public class ApiEndpoints {
     return "/search/instances";
   }
 
+  public static String bibframeSearchPath() {
+    return "/search/bibframe";
+  }
+
   public static String authoritySearchPath() {
     return "/search/authorities";
   }
