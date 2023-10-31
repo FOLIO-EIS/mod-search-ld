@@ -9,5 +9,27 @@
       "value": "sub",
       "type": "Sub"
     }
+  ],
+  "contributors": [
+    {
+      "value": "name one",
+      "type": "Family"
+    },
+    {
+      "value": "name two",
+      "type": "Meeting"
+    },
+    {
+      "value": "name three",
+      "type": "Organization"
+    },
+    {
+      "value": "name four",
+      "type": "Person"
+    },
+    {
+      "value": "common",
+      "type": "Family"
+    }
   ]
 }

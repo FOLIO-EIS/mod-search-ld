@@ -41,21 +41,16 @@
     },
     "contributors": {
       "type": "array",
-      "description": "List of contributors names",
+      "description": "Contributor names array",
       "items": {
-        "type": "object",
         "properties": {
-          "name": {
+          "value": {
             "type": "string",
             "description": "Name of contributor"
           },
-          "primary": {
-            "type": "boolean",
-            "description": "Is primary contributor"
-          },
-          "authorityId": {
+          "type": {
             "type": "string",
-            "description": "Authority ID"
+            "enum": ["Family", "Meeting", "Organization", "Person"]
           }
         }
       }

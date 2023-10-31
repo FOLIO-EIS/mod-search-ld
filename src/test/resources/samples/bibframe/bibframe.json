@@ -22,8 +22,24 @@
   ],
   "contributors": [
     {
-      "name": "name",
-      "primary": true
+      "value": "Family",
+      "type": "Family"
+    },
+    {
+      "value": "Meeting",
+      "type": "Meeting"
+    },
+    {
+      "value": "Organization",
+      "type": "Organization"
+    },
+    {
+      "value": "Person",
+      "type": "Person"
+    },
+    {
+      "value": "common",
+      "type": "Family"
     }
   ],
   "publications": [

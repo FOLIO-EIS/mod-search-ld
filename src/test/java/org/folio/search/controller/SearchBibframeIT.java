@@ -41,7 +41,13 @@ class SearchBibframeIT extends BaseIntegrationTest {
     "8, title = \"title*\"",
     "9, title = \"*\"",
     "10, isbn <> \"1234\"",
-    "11, lccn <> \"2023\""
+    "11, lccn <> \"2023\"",
+    "12, contributor all \"common\"",
+    "13, contributor any \"common\"",
+    "16, contributor = \"common\"",
+    "17, contributor <> \"commonXXX\"",
+    "18, contributor = \"com*\"",
+    "19, contributor = \"*\"",
   })
   void searchByBibframe_parameterized_allResults(int index, String query) throws Throwable {
     doSearchByBibframe(query)
@@ -70,7 +76,12 @@ class SearchBibframeIT extends BaseIntegrationTest {
     "17, lccn ==/string \"20232023\"",
     "18, lccn any \"20232023\"",
     "19, lccn any \"20232023 XXX\"",
-    "20, lccn all \"20232023\""
+    "20, lccn all \"20232023\"",
+    "21, contributor = Family",
+    "22, contributor == Meeting",
+    "23, contributor ==/string Organization",
+    "24, contributor any Person",
+    "25, contributor all Family"
   })
   void searchByBibframe_parameterized_singleResult(int index, String query) throws Throwable {
     doSearchByBibframe(query)
@@ -101,7 +112,16 @@ class SearchBibframeIT extends BaseIntegrationTest {
     "18, lccn any \"2023\"",
     "19, lccn any \"202320231\"",
     "20, lccn all \"2023\"",
-    "21, lccn = \"2023\""
+    "21, lccn = \"2023\"",
+    "22, contributor ==/string \"Famil\"",
+    "23, contributor ==/string \"Meeting1\"",
+    "24, contributor ==/string \"rganizatio\"",
+    "25, contributor == \"Person common\"",
+    "26, contributor == \"common Person\"",
+    "27, contributor all \"comm\"",
+    "28, contributor any \"comm\"",
+    "29, contributor = \"comm\"",
+    "30, contributor <> \"common\"",
   })
   void searchByBibframe_parameterized_zeroResults(int index, String query) throws Throwable {
     doSearchByBibframe(query)
