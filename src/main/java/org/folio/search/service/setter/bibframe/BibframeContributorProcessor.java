@@ -21,7 +21,7 @@ public class BibframeContributorProcessor implements FieldProcessor<Bibframe, Se
       return new HashSet<>();
     }
     return bibframe.getContributors().stream()
-      .map(BibframeContributorsInner::getValue)
+      .map(BibframeContributorsInner::getName)
       .filter(StringUtils::isNotBlank)
       .map(String::trim)
       .collect(toCollection(LinkedHashSet::new));

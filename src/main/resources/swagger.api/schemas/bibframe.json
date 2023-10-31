@@ -25,7 +25,7 @@
     },
     "identifiers": {
       "type": "array",
-      "description": "Resource identifier value array",
+      "description": "Resource identifier array",
       "items": {
         "properties": {
           "value": {
@@ -41,7 +41,7 @@
     },
     "contributors": {
       "type": "array",
-      "description": "Contributor names array",
+      "description": "Contributor array",
       "items": {
         "properties": {
           "name": {
@@ -76,7 +76,7 @@
         }
       }
     },
-      "editionStatement": {
+    "editionStatement": {
       "type": "string"
     }
   },
