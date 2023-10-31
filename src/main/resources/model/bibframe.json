@@ -48,11 +48,14 @@
     "contributors": {
       "type": "object",
       "properties": {
-        "value": {
+        "name": {
           "searchAliases": [ "keyword" ],
           "index": "whitespace"
         },
         "type": {
+          "index": "whitespace"
+        },
+        "isCreator": {
           "index": "whitespace"
         }
       }

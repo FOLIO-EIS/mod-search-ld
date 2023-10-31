@@ -44,13 +44,17 @@
       "description": "Contributor names array",
       "items": {
         "properties": {
-          "value": {
+          "name": {
             "type": "string",
             "description": "Name of contributor"
           },
           "type": {
             "type": "string",
-            "enum": ["Family", "Meeting", "Organization", "Person"]
+            "enum": ["Family", "Jurisdiction", "Meeting", "Organization", "Person"]
+          },
+          "isCreator": {
+            "type": "boolean",
+            "description": "A flag indicating whether the contributor is the creator"
           }
         }
       }
