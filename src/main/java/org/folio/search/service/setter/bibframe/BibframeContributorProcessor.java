@@ -17,7 +17,7 @@ public class BibframeContributorProcessor implements FieldProcessor<Bibframe, Se
 
   @Override
   public Set<String> getFieldValue(Bibframe bibframe) {
-    if (isNull(bibframe.getTitles())) {
+    if (isNull(bibframe.getContributors())) {
       return new HashSet<>();
     }
     return bibframe.getContributors().stream()
