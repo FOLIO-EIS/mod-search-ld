@@ -12,24 +12,29 @@
   ],
   "contributors": [
     {
-      "value": "name one",
-      "type": "Family"
+      "name": "name one",
+      "type": "Family",
+      "isCreator": true
     },
     {
-      "value": "name two",
-      "type": "Meeting"
+      "name": "name two",
+      "type": "Meeting",
+      "isCreator": false
     },
     {
-      "value": "name three",
-      "type": "Organization"
+      "name": "name three",
+      "type": "Organization",
+      "isCreator": true
     },
     {
-      "value": "name four",
-      "type": "Person"
+      "name": "name four",
+      "type": "Person",
+      "isCreator": false
     },
     {
-      "value": "common",
-      "type": "Family"
+      "name": "common",
+      "type": "Family",
+      "isCreator": true
     }
   ]
 }

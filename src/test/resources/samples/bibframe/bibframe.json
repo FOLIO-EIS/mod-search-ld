@@ -22,24 +22,29 @@
   ],
   "contributors": [
     {
-      "value": "Family",
-      "type": "Family"
+      "name": "Family",
+      "type": "Family",
+      "isCreator": true
     },
     {
-      "value": "Meeting",
-      "type": "Meeting"
+      "name": "Meeting",
+      "type": "Meeting",
+      "isCreator": false
     },
     {
-      "value": "Organization",
-      "type": "Organization"
+      "name": "Organization",
+      "type": "Organization",
+      "isCreator": true
     },
     {
-      "value": "Person",
-      "type": "Person"
+      "name": "Person",
+      "type": "Person",
+      "isCreator": false
     },
     {
-      "value": "common",
-      "type": "Family"
+      "name": "common",
+      "type": "Family",
+      "isCreator": true
     }
   ],
   "publications": [
