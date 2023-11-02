@@ -49,18 +49,14 @@
       "type": "object",
       "properties": {
         "name": {
-          "searchAliases": [ "contributors", "keyword" ],
-          "index": "standard",
-          "showInResponse": [ "search" ]
+          "searchAliases": [ "keyword" ],
+          "index": "whitespace"
         },
-        "primary": {
-          "index": "bool",
-          "showInResponse": [ "search" ]
+        "type": {
+          "index": "whitespace"
         },
-        "authorityId": {
-          "index": "keyword",
-          "searchAliases": [ "authorityId" ],
-          "showInResponse": [ "search" ]
+        "isCreator": {
+          "index": "whitespace"
         }
       }
     },
@@ -102,6 +98,11 @@
       "type": "search",
       "index": "multilang",
       "processor": "bibframeTitleProcessor"
+    },
+    "contributor": {
+      "type": "search",
+      "index": "multilang",
+      "processor": "bibframeContributorProcessor"
     }
   },
   "indexMappings": { }

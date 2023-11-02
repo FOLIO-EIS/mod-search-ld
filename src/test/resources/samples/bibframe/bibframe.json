@@ -22,8 +22,29 @@
   ],
   "contributors": [
     {
-      "name": "name",
-      "primary": true
+      "name": "Family",
+      "type": "Family",
+      "isCreator": true
+    },
+    {
+      "name": "Meeting",
+      "type": "Meeting",
+      "isCreator": false
+    },
+    {
+      "name": "Organization",
+      "type": "Organization",
+      "isCreator": true
+    },
+    {
+      "name": "Person",
+      "type": "Person",
+      "isCreator": false
+    },
+    {
+      "name": "common",
+      "type": "Family",
+      "isCreator": true
     }
   ],
   "publications": [
