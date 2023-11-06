@@ -29,7 +29,7 @@ public class BibframeIsbnProcessor implements FieldProcessor<Bibframe, Set<Strin
       return new HashSet<>();
     }
     return bibframe.getIdentifiers().stream()
-      .filter(i -> i.getType().equals(ISBN))
+      .filter(i -> ISBN.equals(i.getType()))
       .map(BibframeIdentifiersInner::getValue)
       .map(this::normalizeIsbn)
       .flatMap(Collection::stream)

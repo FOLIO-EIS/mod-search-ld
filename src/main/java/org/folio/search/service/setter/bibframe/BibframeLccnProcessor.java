@@ -22,7 +22,7 @@ public class BibframeLccnProcessor implements FieldProcessor<Bibframe, Set<Strin
       return new HashSet<>();
     }
     return bibframe.getIdentifiers().stream()
-      .filter(i -> i.getType().equals(LCCN))
+      .filter(i -> LCCN.equals(i.getType()))
       .map(BibframeIdentifiersInner::getValue)
       .filter(StringUtils::isNotBlank)
       .map(String::trim)
