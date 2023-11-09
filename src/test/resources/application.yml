@@ -59,8 +59,8 @@ folio:
   cache:
     call-number-browse-ranges-cache-spec: maximumSize=50,expireAfterWrite=60s
   system-user:
-    username: mod-search
-    password: Mod-search-1-0-0
+    username: mod-search-ld
+    password: Mod-search-ld-1-0-0
     lastname: System
     permissionsFilePath: permissions/test-permissions.csv
   stream-ids:
