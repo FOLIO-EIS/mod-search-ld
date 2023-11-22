@@ -48,10 +48,17 @@ class SearchBibframeIT extends BaseIntegrationTest {
     "17, contributor <> \"commonXXX\"",
     "18, contributor = \"com*\"",
     "19, contributor = \"*\"",
+    "20, (title all \"titleAbc\") sortBy title",
+    "21, title all \"titleAbc\" sortBy title",
+    "22, title all \"titleAbc\" sortBy title/sort.ascending",
+    "23, title all \"titleAbc\" sortBy title/sort.descending",
   })
   void searchByBibframe_parameterized_allResults(int index, String query) throws Throwable {
+    var asc = query.contains("titleAbc def") || query.contains("sortBy") && !query.contains("descending");
     doSearchByBibframe(query)
-      .andExpect(jsonPath("$.totalRecords", is(2)));
+      .andExpect(jsonPath("$.totalRecords", is(2)))
+      .andExpect(jsonPath("$.content[0].titles[0].value", is(asc ? "titleAbc def" : "titleAbc xyz")))
+      .andExpect(jsonPath("$.content[1].titles[0].value", is(asc ? "titleAbc xyz" : "titleAbc def")));
   }
 
   @DisplayName("search by bibframe (single bibframe is found)")

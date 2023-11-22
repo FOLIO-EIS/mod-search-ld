@@ -21,6 +21,12 @@
       "index": "keyword",
       "showInResponse": [ "search" ]
     },
+    "title": {
+      "searchTypes": "sort",
+      "searchAliases": [ "title", "keyword" ],
+      "index": "multilang",
+      "showInResponse": [ "search" ]
+    },
     "titles": {
       "type": "object",
       "properties": {
@@ -98,6 +104,12 @@
       "type": "search",
       "index": "multilang",
       "processor": "bibframeTitleProcessor"
+    },
+    "sort_title": {
+      "searchTypes": "sort",
+      "type": "search",
+      "index": "keyword_lowercase",
+      "processor": "bibframeSortTitleProcessor"
     },
     "contributor": {
       "type": "search",
