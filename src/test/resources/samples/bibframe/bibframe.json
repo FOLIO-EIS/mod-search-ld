@@ -10,48 +10,52 @@
       "type": "Sub"
     }
   ],
-  "identifiers": [
-    {
-      "value": "1234567890123",
-      "type": "ISBN"
-    },
-    {
-      "value": "  2023-202345/AC/r932",
-      "type": "LCCN"
-    }
-  ],
-  "contributors": [
-    {
-      "name": "Family",
-      "type": "Family",
-      "isCreator": true
-    },
-    {
-      "name": "Meeting",
-      "type": "Meeting",
-      "isCreator": false
-    },
-    {
-      "name": "Organization",
-      "type": "Organization",
-      "isCreator": true
-    },
-    {
-      "name": "Person",
-      "type": "Person",
-      "isCreator": false
-    },
-    {
-      "name": "common",
-      "type": "Family",
-      "isCreator": true
-    }
-  ],
   "publications": [
     {
       "publisher": "publisher",
       "dateOfPublication": 2023
     }
   ],
-  "editionStatement": "1st edition"
+  "instances": [
+    {
+      "id": "instance1",
+      "identifiers": [
+        {
+          "value": "1234567890123",
+          "type": "ISBN"
+        },
+        {
+          "value": "  2023-202345/AC/r932",
+          "type": "LCCN"
+        }
+      ],
+      "contributors": [
+        {
+          "name": "Family",
+          "type": "Family",
+          "isCreator": true
+        },
+        {
+          "name": "Meeting",
+          "type": "Meeting",
+          "isCreator": false
+        },
+        {
+          "name": "Organization",
+          "type": "Organization",
+          "isCreator": true
+        },
+        {
+          "name": "Person",
+          "type": "Person",
+          "isCreator": false
+        },
+        {
+          "name": "common",
+          "type": "Family",
+          "isCreator": true
+        }
+      ]
+    }
+  ]
 }
