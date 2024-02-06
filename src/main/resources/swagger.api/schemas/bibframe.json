@@ -56,6 +56,23 @@
         }
       }
     },
+    "classifications": {
+      "type": "array",
+      "description": "List of classification items",
+      "items": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Classification number"
+          },
+          "source": {
+            "type": "string",
+            "description": "The source of the classification"
+          }
+        }
+      }
+    },
     "publications": {
       "type": "array",
       "description": "List of publication items",
