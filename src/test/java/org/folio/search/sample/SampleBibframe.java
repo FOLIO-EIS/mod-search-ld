@@ -24,11 +24,4 @@ public class SampleBibframe {
     return BIBFRAME_2_AS_MAP;
   }
 
-  public static String getBibframeSampleId() {
-    return (String) BIBFRAME_AS_MAP.get("id");
-  }
-
-  public static String getBibframeSample2Id() {
-    return (String) BIBFRAME_2_AS_MAP.get("id");
-  }
 }

@@ -73,23 +73,6 @@
         }
       }
     },
-    "publications": {
-      "type": "array",
-      "description": "List of publication items",
-      "items": {
-        "type": "object",
-        "properties": {
-          "publisher": {
-            "type": "string",
-            "description": "Name of publisher, distributor, etc."
-          },
-          "dateOfPublication": {
-            "type": "string",
-            "description": "Date (year YYYY) of publication, distribution, etc."
-          }
-        }
-      }
-    },
     "subjects": {
       "type": "array",
       "description": "Subject array",
@@ -169,11 +152,11 @@
             "items": {
               "type": "object",
               "properties": {
-                "publisher": {
+                "name": {
                   "type": "string",
                   "description": "Name of publisher, distributor, etc."
                 },
-                "dateOfPublication": {
+                "date": {
                   "type": "string",
                   "description": "Date (year YYYY) of publication, distribution, etc."
                 }

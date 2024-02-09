@@ -21,9 +21,9 @@ public class BibframeTitleProcessor implements FieldProcessor<Bibframe, Set<Stri
   @Override
   public Set<String> getFieldValue(Bibframe bibframe) {
     var workTitles = ofNullable(bibframe.getTitles()).stream().flatMap(Collection::stream);
-    var instanceTitles = ofNullable(bibframe.getInstances()).stream().flatMap(Collection::stream).filter(Objects::nonNull)
+    var instTitles = ofNullable(bibframe.getInstances()).stream().flatMap(Collection::stream).filter(Objects::nonNull)
       .map(BibframeInstancesInner::getTitles).filter(Objects::nonNull).flatMap(Collection::stream);
-    return Stream.concat(workTitles, instanceTitles)
+    return Stream.concat(workTitles, instTitles)
       .filter(Objects::nonNull)
       .map(BibframeTitlesInner::getValue)
       .filter(StringUtils::isNotBlank)

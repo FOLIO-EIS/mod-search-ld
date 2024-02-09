@@ -10,15 +10,72 @@
       "type": "Sub"
     }
   ],
-  "publications": [
+  "contributors": [
     {
-      "publisher": "publisher",
-      "dateOfPublication": 2023
+      "name": "Family",
+      "type": "Family",
+      "isCreator": true
+    },
+    {
+      "name": "Meeting",
+      "type": "Meeting",
+      "isCreator": false
+    },
+    {
+      "name": "Organization",
+      "type": "Organization",
+      "isCreator": true
+    },
+    {
+      "name": "Person",
+      "type": "Person",
+      "isCreator": false
+    },
+    {
+      "name": "common",
+      "type": "Family",
+      "isCreator": true
+    }
+  ],
+  "languages": [
+    {
+      "value": "eng"
+    },
+    {
+      "value": "rus"
+    }
+  ],
+  "classifications": [
+    {
+      "number": "1234",
+      "source": "ddc"
+    },
+    {
+      "number": "5678",
+      "source": "other"
+    }
+  ],
+  "subjects": [
+    {
+      "value": "Subject 1"
+    },
+    {
+      "value": "Subject 2"
     }
   ],
   "instances": [
     {
       "id": "instance1",
+      "titles": [
+        {
+          "value": "Instance1_Title",
+          "type": "Main"
+        },
+        {
+          "value": "Instance1_Subtitle",
+          "type": "Sub"
+        }
+      ],
       "identifiers": [
         {
           "value": "1234567890123",
@@ -31,29 +88,42 @@
       ],
       "contributors": [
         {
-          "name": "Family",
+          "name": "Instance1_Family",
           "type": "Family",
           "isCreator": true
         },
         {
-          "name": "Meeting",
+          "name": "Instance1_Meeting",
           "type": "Meeting",
           "isCreator": false
         },
         {
-          "name": "Organization",
+          "name": "Instance1_Organization",
           "type": "Organization",
           "isCreator": true
         },
         {
-          "name": "Person",
+          "name": "Instance1_Person",
           "type": "Person",
           "isCreator": false
+        }
+      ],
+      "publications": [
+        {
+          "name": "publisher",
+          "date": 2023
         },
         {
-          "name": "common",
-          "type": "Family",
-          "isCreator": true
+          "name": "publisher2",
+          "date": 2024
+        }
+      ],
+      "editionStatements": [
+        {
+          "value": "1st edition"
+        },
+        {
+          "value": "2nd edition"
         }
       ]
     }
