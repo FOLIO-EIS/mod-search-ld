@@ -18,36 +18,16 @@
   },
   "fields": {
     "id": {
-      "index": "keyword",
-      "showInResponse": [ "search" ]
-    },
-    "title": {
-      "searchTypes": "sort",
-      "searchAliases": [ "title", "keyword" ],
-      "index": "multilang",
-      "showInResponse": [ "search" ]
+      "index": "whitespace"
     },
     "titles": {
       "type": "object",
       "properties": {
         "value": {
-          "searchAliases": [ "keyword" ],
           "index": "whitespace"
         },
         "type": {
           "index": "whitespace"
-        }
-      }
-    },
-    "identifiers": {
-      "type": "object",
-      "properties": {
-        "value": {
-          "searchAliases": [ "keyword" ],
-          "index": "whitespace"
-        },
-        "type": {
-          "index": "keyword"
         }
       }
     },
@@ -55,7 +35,6 @@
       "type": "object",
       "properties": {
         "name": {
-          "searchAliases": [ "keyword" ],
           "index": "whitespace"
         },
         "type": {
@@ -66,25 +45,95 @@
         }
       }
     },
-    "publications": {
+    "languages": {
       "type": "object",
       "properties": {
-        "publisher": {
-          "searchAliases": [ "publisher" ],
-          "index": "multilang",
-          "showInResponse": [ "search" ]
-        },
-        "dateOfPublication": {
-          "index": "date",
-          "showInResponse": [ "search" ]
+        "value": {
+          "index": "whitespace"
         }
       }
     },
-    "editionStatement": {
-      "searchTypes": "sort",
-      "searchAliases": [ "editionStatement", "keyword" ],
-      "index": "multilang",
-      "showInResponse": [ "search" ]
+    "classifications": {
+      "type": "object",
+      "properties": {
+        "number": {
+          "index": "whitespace"
+        },
+        "source": {
+          "index": "whitespace"
+        }
+      }
+    },
+    "subjects": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "index": "whitespace"
+        }
+      }
+    },
+    "instances": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "index": "keyword"
+        },
+        "titles": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "index": "whitespace"
+            },
+            "type": {
+              "index": "whitespace"
+            }
+          }
+        },
+        "identifiers": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "index": "whitespace"
+            },
+            "type": {
+              "index": "whitespace"
+            }
+          }
+        },
+        "contributors": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "index": "whitespace"
+            },
+            "type": {
+              "index": "whitespace"
+            },
+            "isCreator": {
+              "index": "whitespace"
+            }
+          }
+        },
+        "publications": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "index": "whitespace"
+            },
+            "date": {
+              "index": "whitespace"
+            }
+          }
+        },
+        "editionStatements": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "index": "whitespace"
+            }
+          }
+        }
+      }
     }
   },
   "searchFields": {

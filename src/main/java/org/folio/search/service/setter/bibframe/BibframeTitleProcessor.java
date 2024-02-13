@@ -1,13 +1,16 @@
 package org.folio.search.service.setter.bibframe;
 
-import static java.util.Objects.isNull;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toCollection;
 
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.folio.search.domain.dto.Bibframe;
+import org.folio.search.domain.dto.BibframeInstancesInner;
 import org.folio.search.domain.dto.BibframeTitlesInner;
 import org.folio.search.service.setter.FieldProcessor;
 import org.springframework.stereotype.Component;
@@ -17,10 +20,11 @@ public class BibframeTitleProcessor implements FieldProcessor<Bibframe, Set<Stri
 
   @Override
   public Set<String> getFieldValue(Bibframe bibframe) {
-    if (isNull(bibframe.getTitles())) {
-      return new HashSet<>();
-    }
-    return bibframe.getTitles().stream()
+    var workTitles = ofNullable(bibframe.getTitles()).stream().flatMap(Collection::stream);
+    var instTitles = ofNullable(bibframe.getInstances()).stream().flatMap(Collection::stream).filter(Objects::nonNull)
+      .map(BibframeInstancesInner::getTitles).filter(Objects::nonNull).flatMap(Collection::stream);
+    return Stream.concat(workTitles, instTitles)
+      .filter(Objects::nonNull)
       .map(BibframeTitlesInner::getValue)
       .filter(StringUtils::isNotBlank)
       .map(String::trim)
