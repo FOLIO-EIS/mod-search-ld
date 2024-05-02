@@ -12,7 +12,7 @@
   <name>mod-search-ld</name>
   <groupId>org.folio</groupId>
   <artifactId>mod-search-ld</artifactId>
-  <version>2.0.2-SNAPSHOT</version>
+  <version>1.0.0-alpha</version>
   <description>FOLIO search service (LD clone)</description>
   <packaging>jar</packaging>
 
