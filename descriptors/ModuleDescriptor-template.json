@@ -229,8 +229,28 @@
       "version": "0.1"
     },
     {
-      "id": "instance-authority-links",
+      "id": "authority-reindex",
+      "version": "0.1"
+    },
+    {
+      "id": "alternative-title-types",
       "version": "1.0"
+    },
+    {
+      "id": "identifier-types",
+      "version": "1.0"
+    },
+    {
+      "id": "call-number-types",
+      "version": "1.0"
+    },
+    {
+      "id": "classification-types",
+      "version": "1.2"
+    },
+    {
+      "id": "locations",
+      "version": "3.0"
     }
   ],
   "permissionSets": [
