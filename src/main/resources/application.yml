@@ -1,6 +1,6 @@
 spring:
   application:
-    name: mod-search
+    name: mod-search-ld
   jackson:
     default-property-inclusion: non_null
     deserialization:
@@ -82,8 +82,8 @@ folio:
     call-number-browse-ranges-cache-spec: maximumSize=50,expireAfterWrite=60s
   system-user:
     enabled: ${SYSTEM_USER_ENABLED:true}
-    username: ${SYSTEM_USER_USERNAME:mod-search}
-    password: ${SYSTEM_USER_PASSWORD}
+    username: ${SYSTEM_USER_USERNAME:mod-search-ld}
+    password: ${SYSTEM_USER_PASSWORD:Mod-search-ld-1-0-0}
     lastname: System
     permissionsFilePath: permissions/mod-search.csv
   stream-ids:
@@ -106,6 +106,9 @@ folio:
       - name: search.consortium.instance
         numPartitions: ${KAFKA_CONSORTIUM_INSTANCE_TOPIC_PARTITIONS:50}
         replicationFactor: ${KAFKA_CONSORTIUM_INSTANCE_TOPIC_REPLICATION_FACTOR:}
+      - name: search.bibframe
+        numPartitions: ${KAFKA_BIBFRAME_TOPIC_PARTITIONS:3}
+        replicationFactor: ${KAFKA_BIBFRAME_TOPIC_REPLICATION_FACTOR:}
     listener:
       events:
         concurrency: ${KAFKA_EVENTS_CONCURRENCY:2}
@@ -135,6 +138,10 @@ folio:
         concurrency: ${KAFKA_LOCATION_CONCURRENCY:1}
         topic-pattern: (${folio.environment}\.)(.*\.)inventory\.location
         group-id: ${folio.environment}-mod-search-location-type-group
+      bibframe:
+        concurrency: ${KAFKA_BIBFRAME_CONCURRENCY:1}
+        topic-pattern: ${KAFKA_BIBFRAME_CONSUMER_PATTERN:(${folio.environment}\.)(.*\.)search\.bibframe}
+        group-id: ${folio.environment}-mod-search-bibframe-group
   okapiUrl: ${okapi.url}
   logging:
     request:

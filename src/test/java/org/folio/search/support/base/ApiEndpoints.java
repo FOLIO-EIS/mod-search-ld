@@ -41,6 +41,10 @@ public class ApiEndpoints {
     return addQueryParams(consortiumItemsSearchPath(), queryParams);
   }
 
+  public static String bibframeSearchPath() {
+    return "/search/bibframe";
+  }
+
   public static String authoritySearchPath() {
     return "/search/authorities";
   }

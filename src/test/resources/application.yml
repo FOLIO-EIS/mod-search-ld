@@ -1,6 +1,6 @@
 spring:
   application:
-    name: mod-search
+    name: mod-search-ld
   main:
      banner-mode: off
      allow-bean-definition-overriding: true
@@ -66,8 +66,8 @@ folio:
   cache:
     call-number-browse-ranges-cache-spec: maximumSize=50,expireAfterWrite=60s
   system-user:
-    username: mod-search
-    password: Mod-search-1-0-0
+    username: mod-search-ld
+    password: Mod-search-ld-1-0-0
     lastname: System
     permissionsFilePath: permissions/test-permissions.csv
   stream-ids:
@@ -110,6 +110,12 @@ folio:
       - name: inventory.location
         numPartitions: 1
         replicationFactor: 1
+      - name: search.instance-subject
+        numPartitions: 10
+        replicationFactor: 1
+      - name: search.bibframe
+        numPartitions: 1
+        replicationFactor: 1
     listener:
       events:
         concurrency: 2
@@ -124,8 +130,8 @@ folio:
         topic-pattern: (${folio.environment}\.)(.*\.)search\.instance-contributor
         group-id: ${folio.environment}-mod-search-contributors-group
       subjects:
-        concurrency: 1
-        topic-pattern: (${folio.environment}\.)(.*\.)search\.instance-subject
+        concurrency: ${KAFKA_SUBJECTS_CONCURRENCY:1}
+        topic-pattern: ${KAFKA_SUBJECTS_CONSUMER_PATTERN:(${folio.environment}\.)(.*\.)search\.instance-subject}
         group-id: ${folio.environment}-mod-search-subjects-group
       consortium-instance:
         concurrency: 1
@@ -139,6 +145,10 @@ folio:
         concurrency: 1
         topic-pattern: (${folio.environment}\.)(.*\.)inventory\.location
         group-id: ${folio.environment}-mod-search-location-type-group
+      bibframe:
+        concurrency: ${KAFKA_BIBFRAME_CONCURRENCY:1}
+        topic-pattern: ${KAFKA_BIBFRAME_CONSUMER_PATTERN:(${folio.environment}\.)(.*\.)search\.bibframe}
+        group-id: ${folio.environment}-mod-search-bibframe-group
   okapiUrl: ${okapi.url}
   logging:
     request:
