@@ -7,8 +7,6 @@ import org.folio.search.domain.dto.Bibframe;
 import org.folio.search.domain.dto.BibframeSearchResult;
 import org.folio.search.domain.dto.Instance;
 import org.folio.search.domain.dto.InstanceSearchResult;
-import org.folio.search.domain.dto.Bibframe;
-import org.folio.search.domain.dto.BibframeSearchResult;
 import org.folio.search.model.service.CqlSearchRequest;
 import org.folio.search.rest.resource.SearchApi;
 import org.folio.search.service.SearchService;

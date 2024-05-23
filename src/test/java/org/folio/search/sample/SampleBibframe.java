@@ -23,5 +23,4 @@ public class SampleBibframe {
   public static Map<String, Object> getBibframe2SampleAsMap() {
     return BIBFRAME_2_AS_MAP;
   }
-
 }

@@ -285,6 +285,7 @@ public abstract class BaseIntegrationTest {
       setUpTenant(tenant, authoritySearchPath(), postInitAction, asList(records), expectedCount,
         record -> kafkaTemplate.send(inventoryAuthorityTopic(tenant), resourceEvent(null, null, record)));
     }
+
     if (type.equals(Bibframe.class)) {
       setUpTenant(tenant, bibframeSearchPath(), postInitAction, asList(records), expectedCount,
         record -> kafkaTemplate.send(bibframeTopic(tenant), resourceEvent(null, null, record)));

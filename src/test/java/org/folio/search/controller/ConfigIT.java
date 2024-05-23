@@ -7,7 +7,6 @@ import static org.awaitility.Durations.TWO_SECONDS;
 import static org.folio.search.configuration.SearchCacheNames.REFERENCE_DATA_CACHE;
 import static org.folio.search.domain.dto.TenantConfiguredFeature.SEARCH_ALL_FIELDS;
 import static org.folio.search.sample.SampleInstances.getSemanticWebAsMap;
-import static org.folio.search.support.base.ApiEndpoints.featureConfigPath;
 import static org.folio.search.utils.SearchConverterUtils.getMapValueByPath;
 import static org.folio.search.utils.SearchUtils.ID_FIELD;
 import static org.folio.search.utils.SearchUtils.INSTANCE_RESOURCE;
@@ -185,7 +184,7 @@ class ConfigIT extends BaseIntegrationTest {
       .andExpect(jsonPath("$.feature", is(SEARCH_ALL_FIELDS.getValue())))
       .andExpect(jsonPath("$.enabled", is(false)));
 
-    doDelete(featureConfigPath(SEARCH_ALL_FIELDS))
+    doDelete(ApiEndpoints.featureConfigPath(SEARCH_ALL_FIELDS))
       .andExpect(status().isNoContent());
   }
 
@@ -203,7 +202,7 @@ class ConfigIT extends BaseIntegrationTest {
       .andExpect(jsonPath("$.errors[0].parameters[0].key", is("feature")))
       .andExpect(jsonPath("$.errors[0].parameters[0].value", is("search.all.fields")));
 
-    doDelete(featureConfigPath(SEARCH_ALL_FIELDS)).andExpect(status().isNoContent());
+    doDelete(ApiEndpoints.featureConfigPath(SEARCH_ALL_FIELDS)).andExpect(status().isNoContent());
   }
 
   @Test
@@ -216,7 +215,7 @@ class ConfigIT extends BaseIntegrationTest {
   @Test
   void updateFeatureConfig_notExists() throws Exception {
     var feature = new FeatureConfig().feature(SEARCH_ALL_FIELDS).enabled(true);
-    attemptPut(featureConfigPath(SEARCH_ALL_FIELDS), feature)
+    attemptPut(ApiEndpoints.featureConfigPath(SEARCH_ALL_FIELDS), feature)
       .andExpect(status().isNotFound())
       .andExpect(jsonPath("$.total_records", is(1)))
       .andExpect(jsonPath("$.errors[0].message", is("Feature configuration not found for id: search.all.fields")));
@@ -224,7 +223,7 @@ class ConfigIT extends BaseIntegrationTest {
 
   @Test
   void deleteUnknownFeature_notExists() throws Exception {
-    attemptDelete(featureConfigPath(SEARCH_ALL_FIELDS))
+    attemptDelete(ApiEndpoints.featureConfigPath(SEARCH_ALL_FIELDS))
       .andExpect(status().isNotFound())
       .andExpect(jsonPath("$.total_records", is(1)))
       .andExpect(jsonPath("$.errors[0].message", is("Feature configuration not found for id: search.all.fields")));
