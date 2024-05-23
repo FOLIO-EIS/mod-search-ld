@@ -19,7 +19,7 @@ import org.folio.search.domain.dto.Note;
 import org.folio.search.domain.dto.Tags;
 import org.folio.search.model.service.MultilangValue;
 import org.folio.search.service.metadata.SearchFieldProvider;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +47,7 @@ class ItemAllFieldValuesProcessorTest {
 
   @Test
   void getFieldValue_positive() {
-    when(searchFieldProvider.isMultilangField(eq(INSTANCE_RESOURCE), anyString())).thenAnswer(inv ->
+    when(searchFieldProvider.isFullTextField(eq(INSTANCE_RESOURCE), anyString())).thenAnswer(inv ->
       MULTILANG_VALUE_PATHS.contains(inv.<String>getArgument(1)));
 
     var actual = processor.getFieldValue(toMap(
@@ -60,8 +60,8 @@ class ItemAllFieldValuesProcessorTest {
 
   @Test
   void getFieldValue_holdingFieldsFromSearchGeneratedValues() {
-    when(searchFieldProvider.isMultilangField(INSTANCE_RESOURCE, "itemPublicNotes")).thenReturn(true);
-    when(searchFieldProvider.isMultilangField(INSTANCE_RESOURCE, "itemFullCallNumbers")).thenReturn(false);
+    when(searchFieldProvider.isFullTextField(INSTANCE_RESOURCE, "itemPublicNotes")).thenReturn(true);
+    when(searchFieldProvider.isFullTextField(INSTANCE_RESOURCE, "itemFullCallNumbers")).thenReturn(false);
 
     var actual = processor.getFieldValue(mapOf(
       "itemPublicNotes", List.of("note1", "note2"),

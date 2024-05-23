@@ -1,5 +1,6 @@
 {
   "id": "5bf370e0-8cca-4d9c-82e4-5170ab2a0a39",
+  "tenantId": "test_tenant",
   "hrid": "inst000000000022",
   "source": "FOLIO",
   "title": "A semantic web primer :0747-0850 & wolves",
@@ -56,7 +57,15 @@
       "identifierTypeId": "c858e4f2-2b6b-4385-842b-60732ee14abb"
     },
     {
+      "value": "n 2003075732",
+      "identifierTypeId": "c858e4f2-2b6b-4385-842b-60732ee14abb"
+    },
+    {
       "value": "0317-8471",
+      "identifierTypeId": "913300b2-03ed-469a-8179-c1092c991227"
+    },
+    {
+      "value": "0040-781X",
       "identifierTypeId": "913300b2-03ed-469a-8179-c1092c991227"
     },
     {
@@ -96,7 +105,7 @@
       "classificationTypeId": "42471af9-7d25-4f3a-bf78-60d29dcf463b"
     },
     {
-      "classificationNumber": "TK5105.88815 .A58 2004",
+      "classificationNumber": "HD1691 .I5 1967",
       "classificationTypeId": "ce176ace-a53e-4b4d-aa89-725ed7b2edac"
     }
   ],

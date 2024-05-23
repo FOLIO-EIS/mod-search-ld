@@ -6,8 +6,7 @@ import static org.awaitility.Awaitility.await;
 import static org.awaitility.Durations.ONE_MINUTE;
 import static org.awaitility.Durations.ONE_SECOND;
 import static org.folio.search.support.base.ApiEndpoints.instanceContributorBrowsePath;
-import static org.folio.search.support.base.ApiEndpoints.recordFacets;
-import static org.folio.search.utils.SearchUtils.getIndexName;
+import static org.folio.search.support.base.ApiEndpoints.recordFacetsPath;
 import static org.folio.search.utils.TestConstants.TENANT_ID;
 import static org.folio.search.utils.TestUtils.array;
 import static org.folio.search.utils.TestUtils.contributorBrowseItem;
@@ -17,8 +16,6 @@ import static org.folio.search.utils.TestUtils.mapOf;
 import static org.folio.search.utils.TestUtils.parseResponse;
 import static org.folio.search.utils.TestUtils.randomId;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
-import static org.opensearch.search.builder.SearchSourceBuilder.searchSource;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import java.util.Collections;
@@ -26,14 +23,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.folio.search.domain.dto.Contributor;
+import org.folio.search.domain.dto.ContributorBrowseResult;
 import org.folio.search.domain.dto.Facet;
 import org.folio.search.domain.dto.FacetResult;
 import org.folio.search.domain.dto.Instance;
-import org.folio.search.domain.dto.InstanceContributorBrowseResult;
 import org.folio.search.domain.dto.RecordType;
 import org.folio.search.support.base.BaseIntegrationTest;
 import org.folio.search.utils.SearchUtils;
-import org.folio.spring.test.type.IntegrationTest;
+import org.folio.spring.testing.type.IntegrationTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -41,10 +38,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.RestHighLevelClient;
-import org.springframework.beans.factory.annotation.Autowired;
 
 @IntegrationTest
 class BrowseContributorIT extends BaseIntegrationTest {
@@ -60,7 +53,7 @@ class BrowseContributorIT extends BaseIntegrationTest {
   private static final Instance[] INSTANCES = instances();
 
   @BeforeAll
-  static void prepare(@Autowired RestHighLevelClient restHighLevelClient) {
+  static void prepare() {
     setUpTenant(INSTANCES);
 
     // this is needed to test deleting contributors when all instances are unlinked from a contributor
@@ -69,11 +62,8 @@ class BrowseContributorIT extends BaseIntegrationTest {
     inventoryApi.updateInstance(TENANT_ID, instanceToUpdate);
 
     await().atMost(ONE_MINUTE).pollInterval(ONE_SECOND).untilAsserted(() -> {
-      var searchRequest = new SearchRequest()
-        .source(searchSource().query(matchAllQuery()).trackTotalHits(true).from(0).size(0))
-        .indices(getIndexName(SearchUtils.CONTRIBUTOR_RESOURCE, TENANT_ID));
-      var searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
-      assertThat(searchResponse.getHits().getTotalHits().value).isEqualTo(12);
+      var counted = countIndexDocument(SearchUtils.CONTRIBUTOR_RESOURCE, TENANT_ID);
+      assertThat(counted).isEqualTo(12);
     });
   }
 
@@ -91,7 +81,7 @@ class BrowseContributorIT extends BaseIntegrationTest {
     var backwardIncludingQuery = "name <= {value}";
 
     return Stream.of(arguments(aroundQuery, "John", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("Bon Jovi").next("John Lennon").items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("Bon Jovi").next("John Lennon").items(List.of(
           contributorBrowseItem(2, "Bon Jovi", NAME_TYPE_IDS[0], AUTHORITY_IDS[0],
             TYPE_IDS[0], TYPE_IDS[1], TYPE_IDS[2]),
           contributorBrowseItem(2, "George Harrison", NAME_TYPE_IDS[1], AUTHORITY_IDS[0], TYPE_IDS[2]),
@@ -100,7 +90,7 @@ class BrowseContributorIT extends BaseIntegrationTest {
           contributorBrowseItem(1, "John Lennon", NAME_TYPE_IDS[2], null, TYPE_IDS[0])))),
 
       arguments(aroundQuery, "Lenon", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("Klaus Meine").next("Paul McCartney").items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("Klaus Meine").next("Paul McCartney").items(List.of(
           contributorBrowseItem(2, "Klaus Meine", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1]),
           contributorBrowseItem(1, "Klaus Meine", NAME_TYPE_IDS[1], AUTHORITY_IDS[0]),
           contributorBrowseItem(0, true, "Lenon"),
@@ -108,7 +98,7 @@ class BrowseContributorIT extends BaseIntegrationTest {
           contributorBrowseItem(1, "Paul McCartney", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[2])))),
 
       arguments(aroundIncludingQuery, "Meine", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("Klaus Meine").next("Paul McCartney").items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("Klaus Meine").next("Paul McCartney").items(List.of(
           contributorBrowseItem(2, "Klaus Meine", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1]),
           contributorBrowseItem(1, "Klaus Meine", NAME_TYPE_IDS[1], AUTHORITY_IDS[0]),
           contributorBrowseItem(0, true, "Meine"),
@@ -116,15 +106,15 @@ class BrowseContributorIT extends BaseIntegrationTest {
           contributorBrowseItem(1, "Paul McCartney", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[2])))),
 
       arguments(aroundIncludingQuery, "Klaus Meine", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("John Lennon").next("Paul McCartney").items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("John Lennon").next("Paul McCartney").items(List.of(
           contributorBrowseItem(1, "John Lennon", NAME_TYPE_IDS[2], null, TYPE_IDS[0]),
           contributorBrowseItem(2, "John Lennon", NAME_TYPE_IDS[2], AUTHORITY_IDS[1], TYPE_IDS[0]),
-          contributorBrowseItem(2, true, "Klaus Meine", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1]),
           contributorBrowseItem(1, true, "Klaus Meine", NAME_TYPE_IDS[1], AUTHORITY_IDS[0]),
+          contributorBrowseItem(2, true, "Klaus Meine", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1]),
           contributorBrowseItem(2, "Paul McCartney", NAME_TYPE_IDS[0], AUTHORITY_IDS[0], TYPE_IDS[0], TYPE_IDS[1])))),
 
       arguments(aroundIncludingQuery, "Zak", 25,
-        new InstanceContributorBrowseResult().totalRecords(12).prev(null).next(null).items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev(null).next(null).items(List.of(
           contributorBrowseItem(1, "Anthony Kiedis", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0]),
           contributorBrowseItem(1, "Anthony Kiedis", NAME_TYPE_IDS[1], AUTHORITY_IDS[1], TYPE_IDS[2]),
           contributorBrowseItem(1, "Bon Jovi", NAME_TYPE_IDS[1], AUTHORITY_IDS[1], TYPE_IDS[0]),
@@ -141,30 +131,30 @@ class BrowseContributorIT extends BaseIntegrationTest {
           contributorBrowseItem(0, true, "Zak")))),
 
       arguments(aroundIncludingQuery, "PMC", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("Paul McCartney").next(null).items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("Paul McCartney").next(null).items(List.of(
           contributorBrowseItem(1, "Paul McCartney", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[2]),
           contributorBrowseItem(2, "Paul McCartney", NAME_TYPE_IDS[0], AUTHORITY_IDS[0], TYPE_IDS[0], TYPE_IDS[1]),
           contributorBrowseItem(0, true, "PMC"),
           contributorBrowseItem(2, "Ringo Starr", NAME_TYPE_IDS[1], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1])))),
 
       arguments(aroundIncludingQuery, "a", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev(null).next("Anthony Kiedis").items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev(null).next("Anthony Kiedis").items(List.of(
           contributorBrowseItem(0, true, "a"),
           contributorBrowseItem(1, "Anthony Kiedis", NAME_TYPE_IDS[1], AUTHORITY_IDS[1], TYPE_IDS[2]),
           contributorBrowseItem(1, "Anthony Kiedis", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0])))),
 
       arguments(aroundIncludingQuery, "z", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("Paul McCartney").next(null).items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("Paul McCartney").next(null).items(List.of(
           contributorBrowseItem(2, "Paul McCartney", NAME_TYPE_IDS[0], AUTHORITY_IDS[0], TYPE_IDS[0], TYPE_IDS[1]),
           contributorBrowseItem(2, "Ringo Starr", NAME_TYPE_IDS[1], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1]),
           contributorBrowseItem(0, true, "z")))),
 
       // browsing forward
       arguments(forwardQuery, "ringo", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("Ringo Starr").next(null).items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("Ringo Starr").next(null).items(List.of(
           contributorBrowseItem(2, "Ringo Starr", NAME_TYPE_IDS[1], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1])))),
 
-      arguments(forwardQuery, "anthony", 5, new InstanceContributorBrowseResult()
+      arguments(forwardQuery, "anthony", 5, new ContributorBrowseResult()
         .totalRecords(12).prev("Anthony Kiedis").next("George Harrison").items(List.of(
           contributorBrowseItem(1, "Anthony Kiedis", NAME_TYPE_IDS[1], AUTHORITY_IDS[1], TYPE_IDS[2]),
           contributorBrowseItem(1, "Anthony Kiedis", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0]),
@@ -173,13 +163,13 @@ class BrowseContributorIT extends BaseIntegrationTest {
           contributorBrowseItem(1, "Bon Jovi", NAME_TYPE_IDS[1], AUTHORITY_IDS[1], TYPE_IDS[0]),
           contributorBrowseItem(2, "George Harrison", NAME_TYPE_IDS[1], AUTHORITY_IDS[0], TYPE_IDS[2])))),
 
-      arguments(forwardQuery, "Z", 10, new InstanceContributorBrowseResult().totalRecords(12).items(emptyList())),
+      arguments(forwardQuery, "Z", 10, new ContributorBrowseResult().totalRecords(12).items(emptyList())),
 
       arguments(forwardIncludingQuery, "Ringo Starr", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("Ringo Starr").next(null).items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("Ringo Starr").next(null).items(List.of(
           contributorBrowseItem(2, "Ringo Starr", NAME_TYPE_IDS[1], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1])))),
 
-      arguments(forwardIncludingQuery, "anthony", 5, new InstanceContributorBrowseResult()
+      arguments(forwardIncludingQuery, "anthony", 5, new ContributorBrowseResult()
         .totalRecords(12).prev("Anthony Kiedis").next("George Harrison").items(List.of(
           contributorBrowseItem(1, "Anthony Kiedis", NAME_TYPE_IDS[1], AUTHORITY_IDS[1], TYPE_IDS[2]),
           contributorBrowseItem(1, "Anthony Kiedis", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0]),
@@ -190,7 +180,7 @@ class BrowseContributorIT extends BaseIntegrationTest {
 
       // browsing backward
       arguments(backwardQuery, "Ringo Starr", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("John Lennon").next("Paul McCartney").items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("John Lennon").next("Paul McCartney").items(List.of(
           contributorBrowseItem(2, "John Lennon", NAME_TYPE_IDS[2], AUTHORITY_IDS[1], TYPE_IDS[0]),
           contributorBrowseItem(2, "Klaus Meine", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1]),
           contributorBrowseItem(1, "Klaus Meine", NAME_TYPE_IDS[1], AUTHORITY_IDS[0]),
@@ -198,17 +188,17 @@ class BrowseContributorIT extends BaseIntegrationTest {
           contributorBrowseItem(2, "Paul McCartney", NAME_TYPE_IDS[0], AUTHORITY_IDS[0], TYPE_IDS[0], TYPE_IDS[1])))),
 
       arguments(backwardQuery, "R", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("John Lennon").next("Paul McCartney").items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("John Lennon").next("Paul McCartney").items(List.of(
           contributorBrowseItem(2, "John Lennon", NAME_TYPE_IDS[2], AUTHORITY_IDS[1], TYPE_IDS[0]),
           contributorBrowseItem(2, "Klaus Meine", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1]),
           contributorBrowseItem(1, "Klaus Meine", NAME_TYPE_IDS[1], AUTHORITY_IDS[0]),
           contributorBrowseItem(1, "Paul McCartney", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[2]),
           contributorBrowseItem(2, "Paul McCartney", NAME_TYPE_IDS[0], AUTHORITY_IDS[0], TYPE_IDS[0], TYPE_IDS[1])))),
 
-      arguments(backwardQuery, "A", 10, new InstanceContributorBrowseResult().totalRecords(12).items(emptyList())),
+      arguments(backwardQuery, "A", 10, new ContributorBrowseResult().totalRecords(12).items(emptyList())),
 
       arguments(backwardIncludingQuery, "ringo", 5,
-        new InstanceContributorBrowseResult().totalRecords(12).prev("John Lennon").next("Paul McCartney").items(List.of(
+        new ContributorBrowseResult().totalRecords(12).prev("John Lennon").next("Paul McCartney").items(List.of(
           contributorBrowseItem(2, "John Lennon", NAME_TYPE_IDS[2], AUTHORITY_IDS[1], TYPE_IDS[0]),
           contributorBrowseItem(2, "Klaus Meine", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0], TYPE_IDS[1]),
           contributorBrowseItem(1, "Klaus Meine", NAME_TYPE_IDS[1], AUTHORITY_IDS[0]),
@@ -291,11 +281,11 @@ class BrowseContributorIT extends BaseIntegrationTest {
   @DisplayName("browseByContributor_parameterized")
   @ParameterizedTest(name = "[{index}] query={0}, value=''{1}'', limit={2}")
   void browseByContributor_parameterized(String query, String anchor, Integer limit,
-                                         InstanceContributorBrowseResult expected) {
+                                         ContributorBrowseResult expected) {
     var request = get(instanceContributorBrowsePath()).param("query", prepareQuery(query, '"' + anchor + '"'))
       .param("limit", String.valueOf(limit));
 
-    var actual = parseResponse(doGet(request), InstanceContributorBrowseResult.class);
+    var actual = parseResponse(doGet(request), ContributorBrowseResult.class);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -305,8 +295,8 @@ class BrowseContributorIT extends BaseIntegrationTest {
       "(" + prepareQuery("name >= {value} or name < {value}", '"' + "John Lennon" + '"') + ") "
         + "and contributorNameTypeId==" + NAME_TYPE_IDS[0]).param("limit", "5");
 
-    var actual = parseResponse(doGet(request), InstanceContributorBrowseResult.class);
-    var expected = new InstanceContributorBrowseResult().totalRecords(5).prev(null).next("Paul McCartney").items(
+    var actual = parseResponse(doGet(request), ContributorBrowseResult.class);
+    var expected = new ContributorBrowseResult().totalRecords(5).prev(null).next("Paul McCartney").items(
       List.of(
         contributorBrowseItem(1, "Anthony Kiedis", NAME_TYPE_IDS[0], AUTHORITY_IDS[1], TYPE_IDS[0]),
         contributorBrowseItem(2, "Bon Jovi", NAME_TYPE_IDS[0], AUTHORITY_IDS[0], TYPE_IDS[0], TYPE_IDS[1], TYPE_IDS[2]),
@@ -321,7 +311,7 @@ class BrowseContributorIT extends BaseIntegrationTest {
   @ParameterizedTest(name = "[{index}] query={0}, facets={1}")
   @DisplayName("getFacetsForContributors_parameterized")
   void getFacetsForContributors_parameterized(String query, String[] facets, Map<String, Facet> expected) {
-    var request = doGet(recordFacets(RecordType.CONTRIBUTORS, query, facets));
+    var request = doGet(recordFacetsPath(RecordType.CONTRIBUTORS, query, facets));
     var actual = parseResponse(request, FacetResult.class);
 
     expected.forEach((facetName, expectedFacet) -> {

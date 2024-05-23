@@ -1,29 +1,23 @@
 package org.folio.search.controller;
 
-import static org.folio.search.sample.SampleInstances.getSemanticWeb;
 import static org.folio.search.sample.SampleInstances.getSemanticWebAsMap;
 import static org.folio.search.sample.SampleInstances.getSemanticWebId;
-import static org.folio.search.support.base.ApiEndpoints.instanceIds;
+import static org.folio.search.sample.SampleInstancesResponse.getInstanceBasicResponseSample;
+import static org.folio.search.sample.SampleInstancesResponse.getInstanceFullResponseSample;
+import static org.folio.search.support.base.ApiEndpoints.instanceIdsPath;
+import static org.folio.search.utils.TestConstants.TENANT_ID;
 import static org.folio.search.utils.TestUtils.parseResponse;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.folio.search.domain.dto.Holding;
+import org.assertj.core.api.Assertions;
 import org.folio.search.domain.dto.Instance;
-import org.folio.search.domain.dto.Item;
-import org.folio.search.domain.dto.ItemEffectiveCallNumberComponents;
-import org.folio.search.model.service.ResultList;
+import org.folio.search.domain.dto.InstanceSearchResult;
 import org.folio.search.support.base.BaseIntegrationTest;
-import org.folio.spring.test.type.IntegrationTest;
-import org.hamcrest.Matchers;
+import org.folio.spring.testing.type.IntegrationTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -50,6 +44,24 @@ class SearchInstanceIT extends BaseIntegrationTest {
   @DisplayName("search by instances (single instance found)")
   @ParameterizedTest(name = "[{index}] query={0}, value=''{1}''")
   void searchByInstances_parameterized_singleResult(String query, String value) throws Throwable {
+    doSearchByInstances(prepareQuery(query, value))
+      .andExpect(jsonPath("$.totalRecords", is(1)))
+      .andExpect(jsonPath("$.instances[0].id", is(getSemanticWebId())));
+  }
+
+  @MethodSource("testCaseInsensitiveDataProvider")
+  @DisplayName("search by instances case insensitive (single instance found)")
+  @ParameterizedTest(name = "[{index}] query={0}, value=''{1}''")
+  void searchByInstancesCaseInsensitive_parameterized_singleResult(String query, String value) throws Throwable {
+    doSearchByInstances(prepareQuery(query, value))
+      .andExpect(jsonPath("$.totalRecords", is(1)))
+      .andExpect(jsonPath("$.instances[0].id", is(getSemanticWebId())));
+  }
+
+  @MethodSource("testIssnDataProvider")
+  @DisplayName("search by instances case insensitive ISSN with trailing X")
+  @ParameterizedTest(name = "[{index}] query={0}, value=''{1}''")
+  void searchByInstancesCaseInsensitiveIssn_parameterized_singleResult(String query, String value) throws Throwable {
     doSearchByInstances(prepareQuery(query, value))
       .andExpect(jsonPath("$.totalRecords", is(1)))
       .andExpect(jsonPath("$.instances[0].id", is(getSemanticWebId())));
@@ -85,7 +97,7 @@ class SearchInstanceIT extends BaseIntegrationTest {
 
   @Test
   void streamInstanceIds() throws Exception {
-    doGet(instanceIds("cql.allRecords=1"))
+    doGet(instanceIdsPath("cql.allRecords=1"))
       .andExpect(jsonPath("totalRecords", is(1)))
       .andExpect(jsonPath("ids[0].id", is(getSemanticWebId())));
   }
@@ -103,73 +115,23 @@ class SearchInstanceIT extends BaseIntegrationTest {
   }
 
   @Test
-  void responseContainsOnlyBasicInstanceProperties() throws Exception {
-    var expected = getSemanticWeb();
-    var response = doSearchByInstances(prepareQuery("id=={value}", getSemanticWebId()))
-      .andExpect(jsonPath("totalRecords", is(1)))
-      // make sure that no unexpected properties are present
-      .andExpect(jsonPath("instances[0].length()", is(11)));
+  void responseContainsOnlyBasicInstanceProperties() {
+    var expected = getInstanceBasicResponseSample();
+    var response = doSearchByInstances(prepareQuery("id=={value}", getSemanticWebId()));
 
-    var actual = parseResponse(response, new TypeReference<ResultList<Instance>>() { }).getResult().get(0);
-    assertThat(actual.getId(), is(expected.getId()));
-    assertThat(actual.getTitle(), is(expected.getTitle()));
-    assertThat(actual.getContributors(), is(expected.getContributors()));
-    assertThat(actual.getStaffSuppress(), is(false));
-    assertThat(actual.getIsBoundWith(), is(true));
-    assertThat(actual.getDiscoverySuppress(), is(expected.getDiscoverySuppress()));
-    assertThat(actual.getPublication(), is(expected.getPublication()));
-    assertThat(actual.getItems(), is(List.of(
-      new Item()
-        .effectiveCallNumberComponents(callNumber("prefix-10101", "suffix-10101"))
-        .effectiveShelvingOrder("TK 45105.88815 A58 42004 FT MEADE"),
-      new Item()
-        .effectiveCallNumberComponents(callNumber("prefix-90000", "suffix-90000"))
-        .effectiveShelvingOrder("TK 45105.88815 A58 42004 FT MEADE")
-    )));
-    assertThat(actual.getHoldings(), is(List.of()));
-    assertThat(actual.getElectronicAccess(), is(List.of()));
-    assertThat(actual.getNotes(), is(List.of()));
+    var actual = parseResponse(response, InstanceSearchResult.class);
+
+    Assertions.assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
   }
 
   @Test
-  void responseContainsAllInstanceProperties() throws Exception {
-    var expected = getSemanticWeb();
-    var response = doSearchByInstances(prepareQuery("id=={value}", getSemanticWebId()), true)
-      .andExpect(jsonPath("totalRecords", is(1)));
+  void responseContainsAllInstanceProperties() {
+    var expected = getInstanceFullResponseSample();
+    var response = doSearchByInstances(prepareQuery("id=={value}", getSemanticWebId()), true);
 
-    var actual = parseResponse(response, new TypeReference<ResultList<Instance>>() { }).getResult().get(0);
+    var actual = parseResponse(response, InstanceSearchResult.class);
 
-    assertThat(actual.getHoldings(), containsInAnyOrder(expected.getHoldings().stream()
-      .map(hr -> hr.discoverySuppress(false))
-      .map(SearchInstanceIT::removeUnexpectedProperties)
-      .map(Matchers::is).collect(Collectors.toList())));
-
-    assertThat(actual.getItems(), containsInAnyOrder(expected.getItems().stream()
-      .map(SearchInstanceIT::removeUnexpectedProperties)
-      .map(Matchers::is).collect(Collectors.toList())));
-
-    assertThat(actual.holdings(null).items(null),
-      is(removeUnexpectedProperties(expected)));
-  }
-
-  private static Holding removeUnexpectedProperties(Holding holding) {
-    holding.getElectronicAccess().forEach(e -> e.setMaterialsSpecification(null));
-    return holding.callNumberSuffix(null).callNumber(null).callNumberPrefix(null);
-  }
-
-  private static Item removeUnexpectedProperties(Item item) {
-    item.getElectronicAccess().forEach(e -> e.setMaterialsSpecification(null));
-    return item.discoverySuppress(false);
-  }
-
-  private static Instance removeUnexpectedProperties(Instance instance) {
-    instance.getElectronicAccess().forEach(e -> e.setMaterialsSpecification(null));
-    return instance.staffSuppress(false).discoverySuppress(false).items(null).holdings(null);
-  }
-
-  private static ItemEffectiveCallNumberComponents callNumber(String prefix, String suffix) {
-    return new ItemEffectiveCallNumberComponents().prefix(prefix).suffix(suffix)
-      .callNumber("TK5105.88815 . A58 2004 FT MEADE");
+    Assertions.assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
   }
 
   private static Stream<Arguments> testDataProvider() {
@@ -179,6 +141,10 @@ class SearchInstanceIT extends BaseIntegrationTest {
       arguments("id = {value}", getSemanticWebId()),
       arguments("id = {value}", "5bf370e0*a0a39"),
       arguments("id == {value}", getSemanticWebId()),
+
+      arguments("tenantId = {value}", TENANT_ID),
+
+      arguments("shared == {value}", "false"),
 
       arguments("title <> {value}", "unknown value"),
       arguments("indexTitle <> {value}", "unknown value"),
@@ -227,7 +193,7 @@ class SearchInstanceIT extends BaseIntegrationTest {
       arguments("identifiers.value all ({value})", "047144250X and 2003065165 and 0317-8471"),
       arguments("identifiers.identifierTypeId == {value}", "c858e4f2-2b6b-4385-842b-60732ee14abb"),
       arguments("identifiers.identifierTypeId == 8261054f-be78-422d-bd51-4ed9f33c3422 "
-        + "and identifiers.value == {value}", "0262012103"),
+                + "and identifiers.value == {value}", "0262012103"),
 
       arguments("publisher all {value}", "MIT"),
       arguments("publisher all {value}", "mit"),
@@ -271,6 +237,18 @@ class SearchInstanceIT extends BaseIntegrationTest {
       arguments("classifications.classificationNumber=={value}", "025.04"),
       arguments("classifications.classificationNumber=={value}", "025*"),
 
+      // search by normalized classification number
+      arguments("normalizedClassificationNumber==\"{value}\"", "HD1691 .I5 1967"),
+      arguments("normalizedClassificationNumber==\"{value}\"", "hd1691 .I5 1967"), // Case sensitivity
+      arguments("normalizedClassificationNumber==\"{value}\"", "*1691 .I5 1967"), // Leading wildcard
+      arguments("normalizedClassificationNumber==\"{value}\"", "HD1691*"), // Trailing wildcard
+      arguments("normalizedClassificationNumber==\"{value}\"", "*1691*"), // Leading and trailing wildcard
+      arguments("normalizedClassificationNumber==\"{value}\"", "HD1691.I51967"), // Spaces internal
+      arguments("normalizedClassificationNumber==\"{value}\"", "  HD1691 .I5 1967"), // Spaces leading
+      arguments("normalizedClassificationNumber==\"{value}\"", "HD1691 .I5 1967   "), // Spaces trailing
+      arguments("normalizedClassificationNumber==\"{value}\"", "HD1691 I5 1967"), // Special characters
+      arguments("normalizedClassificationNumber==\"{value}\"", "HD1691I51967"), // Special characters and spaces
+
       arguments("electronicAccess.uri==\"{value}\"", "https://testlibrary.sample.com/journal/10.1002/(ISSN)1938-3703"),
       arguments("electronicAccess.linkText all {value}", "access"),
       arguments("electronicAccess.publicNote all {value}", "online"),
@@ -303,6 +281,14 @@ class SearchInstanceIT extends BaseIntegrationTest {
       arguments("oclc = {value}", "12345 800630"),
       arguments("oclc = {value}", "ocm60710867"),
       arguments("oclc = {value}", "60710*"),
+
+      // search by lccn
+      arguments("lccn = {value}", "2003065165"),
+      arguments("lccn = {value}", "*65165"),
+      arguments("lccn = {value}", "n 2003075732"),
+      arguments("lccn = {value}", "N2003075732"),
+      arguments("lccn = {value}", "*75732"),
+      arguments("lccn = {value}", "20030*"),
 
       // search by item fields
       arguments("item.hrid = {value}", "item000000000014"),
@@ -388,7 +374,257 @@ class SearchInstanceIT extends BaseIntegrationTest {
       arguments("(keyword all \"{value}\")", "A semantic web primer : wolves"),
       arguments("(keyword all \"{value}\")", "A semantic web primer & wolves"),
       arguments("(keyword all \"{value}\")", "A semantic web primer / wolves"),
+      arguments("keyword == {value}", "Van Harmelen, Frank"),
+      arguments("keyword ==/string {value}", "0262012103"),
       arguments("(title all \"{value}\")", "A semantic web primer : 0747-0850")
     );
+  }
+
+  private static Stream<Arguments> testCaseInsensitiveDataProvider() {
+    return Stream.of(
+      arguments("title <> {value}", "UNKNOWN VALUE"),
+      arguments("indexTitle <> {value}", "UNKNOWN VALUE"),
+
+      arguments("title all {value}", "SEMANTIC"),
+      arguments("title all {value}", "PRIMERS"),
+      arguments("title all {value}", "CHERCHELL"),
+      arguments("title all {value}", "COOPERATE"),
+      arguments("title all {value}", "COOPERATIVE"),
+      arguments("title any {value}", "SEMANTIC WEB WORD"),
+      arguments("title all {value}", "SYSTEM INFORMATION"),
+      // search by instance title (search across 2 fields)
+      arguments("title any {value}", "SYSTEMS ALTERNATIVE SEMANTIC"),
+
+      //phrase matching
+      arguments("title == {value}", "SEMANTIC WEB"),
+      arguments("title == {value}", "A SEMANTIC WEB PRIMER"),
+      arguments("title == {value}", "COOPERATIVE INFORMATION SYSTEMS"),
+
+      // ASCII folding
+      arguments("title all {value}", "DEJA VU"),
+      arguments("title all {value}", "DÉJÀ VU"),
+      arguments("title all {value}", "ALGÉRIE"),
+      // e here should replace e + U + 0301 (Combining Acute Accent)
+      arguments("title all {value}", "ALGERIE"),
+
+      arguments("series all {value}", "COOPERATIVE INFORMATION SYSTEMS"),
+      arguments("series all {value}", "COOPERATE"),
+      arguments("series all {value}", "COOPERATIVE"),
+
+      arguments("alternativeTitles.alternativeTitle == {value}", "AN ALTERNATIVE TITLE"),
+      arguments("alternativeTitles.alternativeTitle all {value}", "UNIFORM"),
+      arguments("alternativeTitles.alternativeTitle all {value}", "DEJA VU"),
+      arguments("alternativeTitles.alternativeTitle all {value}", "DÉJÀ VU"),
+      arguments("alternativeTitles.alternativeTitle all {value}", "PANGOK"),
+      arguments("alternativeTitles.alternativeTitle all {value}", "PANG'OK"),
+      arguments("alternativeTitles.alternativeTitle all {value}", "PANG OK"),
+      arguments("alternativeTitles.alternativeTitle all {value}", "BANGK'ASYURANGSŬ"),
+      arguments("alternativeTitles.alternativeTitle all {value}", "ASYURANGSŬ"),
+
+      arguments("uniformTitle all {value}", "UNIFORM"),
+
+      arguments("identifiers.value == {value}", "0262012103"),
+      arguments("identifiers.value all {value}", "200306*"),
+      arguments("identifiers.value all ({value})", "047144250X OR 2003065165 OR 0000-0000"),
+      arguments("identifiers.value all ({value})", "047144250X AND 2003065165 AND 0317-8471"),
+      arguments("identifiers.identifierTypeId == {value}", "C858E4F2-2B6B-4385-842B-60732EE14ABB"),
+      arguments("identifiers.identifierTypeId == 8261054F-BE78-422D-BD51-4ED9F33C3422 "
+        + "AND identifiers.value == {value}", "0262012103"),
+
+      arguments("publisher all {value}", "MIT"),
+      arguments("publisher all {value}", "MIT"),
+      arguments("publisher all {value}", "PRESS"),
+
+      arguments("contributors all {value}", "FRANK"),
+      arguments("contributors all {value}", "FRANK"),
+      arguments("contributors all {value}", "GRIGORIS"),
+      arguments("contributors all {value}", "GRIGORIS ANTONIOU"),
+      arguments("contributors any {value}", "GRIGORIS FRANK"),
+      arguments("contributors all {value}", "VAN HARMELEN, FRANK"),
+      arguments("contributors == {value}", "VAN HARMELEN, FRANK"),
+      arguments("contributors ==/string {value}", "VAN HARMELEN, FRANK"),
+      arguments("contributors = {value}", "VAN HARMELEN, FR*"),
+      arguments("contributors = {value}", "*RMELEN, FRANK"),
+
+      arguments("contributors.name = {value}", "VAN HARMELEN, FRANK"),
+      arguments("contributors.name == {value}", "VAN HARMELEN"),
+      arguments("contributors.name ==/string {value}", "VAN HARMELEN, FRANK"),
+      arguments("contributors.name = {value}", "VAN HARMELEN, FR*"),
+      arguments("contributors.name = {value}", "ANTON*"),
+      arguments("contributors.name = {value}", "*RMELEN, FRANK"),
+
+      arguments("contributors.authorityId == {value}", "55294032-FCF6-45CC-B6DA-4420A61EF72C"),
+      arguments("authorityId == {value}", "55294032-FCF6-45CC-B6DA-4420A61EF72C"),
+
+      arguments("hrid == {value}", "INST000000000022"),
+      arguments("hrid == {value}", "INST00*"),
+      arguments("hrid == {value}", "*00022"),
+      arguments("hrid == {value}", "*00000002*"),
+
+      arguments("keyword = *", ""),
+      arguments("keyword all {value}", "SEMANTIC WEB PRIMER"),
+      arguments("keyword all {value}", "SEMANTIC ANTONIOU OCM0012345 047144250X"),
+      arguments("subjects all {value}", "SEMANTIC"),
+      arguments("subjects ==/string {value}", "SEMANTIC WEB"),
+
+      arguments("tags.tagList all {value}", "BOOK"),
+      arguments("tags.tagList all {value}", "ELECTRONIC"),
+
+      arguments("classifications.classificationNumber=={value}", "025.04"),
+      arguments("classifications.classificationNumber=={value}", "025*"),
+
+      arguments("electronicAccess.uri==\"{value}\"", "HTTPS://TESTLIBRARY.SAMPLE.COM/JOURNAL/10.1002/(ISSN)1938-3703"),
+      arguments("electronicAccess.linkText all {value}", "ACCESS"),
+      arguments("electronicAccess.publicNote all {value}", "ONLINE"),
+      arguments("instanceFormatIds == {value}", "7F9C4AC0-FA3D-43B7-B978-3BF0BE38C4DA"),
+
+      arguments("administrativeNotes == {value}", "ORIGINAL + PCC"),
+      arguments("administrativeNotes any {value}", "ORIGINAL PCC"),
+
+      arguments("publicNotes all {value}", "DEVELOPMENT"),
+      arguments("notes.note == {value}", "LIBRARIAN PRIVATE NOTE"),
+      arguments("notes.note == {value}", "THE DEVELOPMENT OF THE SEMANTIC WEB,"),
+      arguments("callNumber = {value}", "\"\""),
+
+      // search by isbn10
+      arguments("isbn = {value}", "047144250X"),
+      arguments("isbn = {value}", "04714*"),
+      arguments("isbn = {value}", "0471-4*"),
+
+      // search by isbn13
+      arguments("isbn = {value}", "9780471442509"),
+      arguments("isbn = {value}", "978-0471-44250-9"),
+      arguments("isbn = {value}", "PAPER"),
+      arguments("isbn = {value}", "978-0471*"),
+      arguments("isbn = {value}", "9780471*"),
+
+      arguments("issn = {value}", "0317-8471"),
+      arguments("issn = {value}", "0317*"),
+
+      // search by oclc
+      arguments("oclc = {value}", "12345 800630"),
+      arguments("oclc = {value}", "OCM60710867"),
+      arguments("oclc = {value}", "60710*"),
+
+      // search by lccn
+      arguments("lccn = {value}", "2003065165"),
+      arguments("lccn = {value}", "*65165"),
+      arguments("lccn = {value}", "N 2003075732"),
+      arguments("lccn = {value}", "N2003075732"),
+      arguments("lccn = {value}", "*75732"),
+      arguments("lccn = {value}", "20030*"),
+
+      // search by item fields
+      arguments("item.hrid = {value}", "ITEM000000000014"),
+      arguments("item.hrid = {value}", "ITEM*"),
+      arguments("item.hrid = {value}", "*00014"),
+      arguments("item.hrid = {value}", "ITEM*00014"),
+
+      arguments("itemPublicNotes all {value}", "BIBLIOGRAPHICAL REFERENCES"),
+      arguments("itemPublicNotes all {value}", "PUBLIC CIRCULATION NOTE"),
+
+      arguments("itemIdentifiers all {value}", "ITEM000000000014"),
+      arguments("itemIdentifiers all {value}", "81AE0F60-F2BC-450C-84C8-5A21096DAED9"),
+      arguments("itemIdentifiers all {value}", "ITEM_ACCESSION_NUMBER"),
+      arguments("itemIdentifiers all {value}", "7212BA6A-8DCF-45A1-BE9A-FFAA847C4423"),
+      arguments("itemIdentifiers all {value}", "ITEMIDENTIFIERFIELDVALUE"),
+
+      arguments("item.administrativeNotes == {value}", "NEED ATTENTION"),
+      arguments("item.administrativeNotes all {value}", "V1.1"),
+
+      arguments("item.notes.note == {value}", "LIBRARIAN PUBLIC NOTE FOR ITEM"),
+      arguments("item.notes.note == {value}", "LIBRARIAN PRIVATE NOTE FOR ITEM"),
+      arguments("item.notes.note == {value}", "TESTCIRCULATIONNOTE"),
+      arguments("item.notes.note == {value}", "PRIVATE CIRCULATION NOTE"),
+
+      arguments("item.circulationNotes.note == {value}", "TESTCIRCULATIONNOTE"),
+      arguments("item.circulationNotes.note all {value}", "PUBLIC CIRCULATION NOTE"),
+      arguments("item.circulationNotes.note all {value}", "PRIVATE CIRCULATION NOTE"),
+      arguments("item.circulationNotes.note all {value}", "*NOTE"),
+      arguments("item.circulationNotes.note all {value}", "PRIVATE CIRCULATION*"),
+
+      arguments("item.electronicAccess==\"{value}\"", "TABLE"),
+      arguments("item.electronicAccess.uri==\"{value}\"", "HTTPS://WWW.LOC.GOV/CATDIR/TOC/ECIP0718/2007020429.HTML"),
+      arguments("item.electronicAccess.linkText all {value}", "LINKS AVAILABLE"),
+      arguments("item.electronicAccess.publicNote all {value}", "TABLE OF CONTENTS"),
+
+      arguments("item.effectiveShelvingOrder ==/string \"{value}\"", "TK 45105.88815 A58 42004 FT MEADE"),
+      arguments("itemEffectiveShelvingOrder ==/string \"{value}\"", "TK 45105.88815 A58 42004 FT MEADE"),
+
+      // Search by item fields (Backward compatibility)
+      arguments("items.hrid = {value}", "ITEM000000000014"),
+      arguments("items.hrid = {value}", "ITEM*"),
+      arguments("items.hrid = {value}", "*00014"),
+      arguments("items.hrid = {value}", "ITEM*00014"),
+
+      arguments("items.notes.note == {value}", "LIBRARIAN PUBLIC NOTE FOR ITEM"),
+      arguments("items.notes.note == {value}", "LIBRARIAN PRIVATE NOTE FOR ITEM"),
+      arguments("items.notes.note == {value}", "TESTCIRCULATIONNOTE"),
+      arguments("items.notes.note == {value}", "PRIVATE CIRCULATION NOTE"),
+
+      arguments("items.tags.tagList all {value}", "ITEM-TAG"),
+
+      arguments("items.circulationNotes.note == {value}", "TESTCIRCULATIONNOTE"),
+      arguments("items.circulationNotes.note all {value}", "PUBLIC CIRCULATION NOTE"),
+      arguments("items.circulationNotes.note all {value}", "PRIVATE CIRCULATION NOTE"),
+      arguments("items.circulationNotes.note all {value}", "*NOTE"),
+      arguments("items.circulationNotes.note all {value}", "PRIVATE CIRCULATION*"),
+
+      arguments("items.electronicAccess==\"{value}\"", "TABLE"),
+      arguments("items.electronicAccess.uri==\"{value}\"", "HTTPS://WWW.LOC.GOV/CATDIR/TOC/ECIP0718/2007020429.HTML"),
+      arguments("items.electronicAccess.linkText all {value}", "LINKS AVAILABLE"),
+      arguments("items.electronicAccess.publicNote all {value}", "TABLE OF CONTENTS"),
+
+      // search by holding fields
+      arguments("holdings.administrativeNotes == {value}", "FOR DELETION"),
+      arguments("holdings.administrativeNotes all {value}", "V2.0"),
+      arguments("holdingsPublicNotes all {value}", "BIBLIOGRAPHICAL REFERENCES"),
+      arguments("holdings.notes.note == {value}", "LIBRARIAN PUBLIC NOTE FOR HOLDING"),
+      arguments("holdings.notes.note == {value}", "LIBRARIAN PRIVATE NOTE FOR HOLDING"),
+      arguments("holdings.tags.tagList == {value}", "HOLDINGS-TAG"),
+
+      arguments("holdings.electronicAccess==\"{value}\"", "ELECTRONICACCESS"),
+      arguments("holdings.electronicAccess.uri==\"{value}\"", "HTTPS://TESTLIBRARY.SAMPLE.COM/HOLDINGS?HRID=HO0000006"),
+      arguments("holdings.electronicAccess.linkText all {value}", "LINK TEXT"),
+      arguments("holdings.electronicAccess.publicNote all {value}", "NOTE"),
+
+      arguments("holdingsIdentifiers all {value}", "HOLD000000000009"),
+      arguments("holdingsIdentifiers == {value}", "1D76EE84-D776-48D2-AB96-140C24E39AC5"),
+      arguments("holdingsIdentifiers all {value}", "9B8EC096-FA2E-451B-8E7A-6D1C977EE946"),
+      arguments("holdingsIdentifiers all {value}", "E3FF6133-B9A2-4D4C-A1C9-DC1867D4DF19"),
+
+      //search by multiple different parameters
+      arguments("(keyword all \"{value}\")", "WOLVES MATTHEW 9781609383657"),
+      arguments("(keyword all \"{value}\")", "A SEMANTIC WEB PRIMER : WOLVES"),
+      arguments("(keyword all \"{value}\")", "A SEMANTIC WEB PRIMER & WOLVES"),
+      arguments("(keyword all \"{value}\")", "A SEMANTIC WEB PRIMER / WOLVES"),
+      arguments("keyword == {value}", "VAN HARMELEN, FRANK"),
+      arguments("keyword ==/string {value}", "0262012103"),
+      arguments("(title all \"{value}\")", "A SEMANTIC WEB PRIMER : 0747-0850")
+    );
+  }
+
+  private static Stream<Arguments> testIssnDataProvider() {
+    return Stream.of(
+      arguments("issn = {value}", "0040-781X"),
+      arguments("issn = {value}", "0040-781x"),
+      arguments("issn = {value}", "*0-781X"),
+      arguments("issn = {value}", "*0-781x"),
+      arguments("issn = {value}", "**0-781X"),
+      arguments("issn = {value}", "**0-781x"),
+      arguments("issn = {value}", "***0-***X"),
+      arguments("issn = {value}", "***0-***x"),
+      arguments("issn = {value}", "00*0-*8*X"),
+      arguments("issn = {value}", "00*0-*8*x"),
+      arguments("issn = {value}", "***0-***X"),
+      arguments("issn = {value}", "***0-***x"),
+      arguments("issn = {value}", "***0-*X"),
+      arguments("issn = {value}", "***0-**x"),
+      arguments("issn = {value}", "0**-**x"),
+      arguments("issn = {value}", "0*-*x"),
+      arguments("issn = {value}", "*X"),
+      arguments("issn = {value}", "*x"),
+      arguments("issn = {value}", "0040-781*")
+      );
   }
 }

@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.folio.search.domain.dto.Instance;
 import org.folio.search.support.base.BaseIntegrationTest;
-import org.folio.spring.test.type.IntegrationTest;
+import org.folio.spring.testing.type.IntegrationTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -35,8 +35,10 @@ class SearchByAllFieldsIT extends BaseIntegrationTest {
     "Cooperative information systems",
     "0262012103",
     "2003065165",
+    "Cambridge, Mass.",
     "Antoniou, Grigoris matthew",
-    "TK5105.88815 .A58 2004",
+    "Antoniou matthew",
+    "HD1691 .I5 1967",
     "Cambridge, Mass.",
 
     // holding field values
@@ -71,7 +73,7 @@ class SearchByAllFieldsIT extends BaseIntegrationTest {
     "0262012103",
     "2003065165",
     "Antoniou, Grigoris matthew",
-    "TK5105.88815 .A58 2004",
+    "HD1691 .I5 1967",
     "Cambridge, Mass.",
     "2020-12-08T15:47:13.625+00:00",
     "2020-12-08T15:47:13.625+0000"

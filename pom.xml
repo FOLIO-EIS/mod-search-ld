@@ -5,14 +5,14 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.0.5</version>
+    <version>3.2.5</version>
     <relativePath />
   </parent>
 
   <name>mod-search-ld</name>
   <groupId>org.folio</groupId>
   <artifactId>mod-search-ld</artifactId>
-  <version>2.0.2-SNAPSHOT</version>
+  <version>3.3.1-SNAPSHOT</version>
   <description>FOLIO search service (LD clone)</description>
   <packaging>jar</packaging>
 
@@ -34,43 +34,50 @@
       src/main/java/org/folio/search/configuration/properties/**
     </sonar.exclusions>
 
-    <folio-spring-base.version>6.1.0</folio-spring-base.version>
-    <folio-service-tools.version>3.0.0</folio-service-tools.version>
-    <folio-isbn-utils.version>1.5.0</folio-isbn-utils.version>
-    <folio-cql2pgjson.version>35.0.6</folio-cql2pgjson.version>
-    <opensearch.version>2.5.0</opensearch.version>
-    <mapstruct.version>1.5.3.Final</mapstruct.version>
-    <spring-kafka.version>3.0.5</spring-kafka.version>
-    <apache-commons-io.version>2.11.0</apache-commons-io.version>
+    <folio-spring-support.version>8.2.0-SNAPSHOT</folio-spring-support.version>
+    <folio-service-tools.version>4.1.0-SNAPSHOT</folio-service-tools.version>
+    <folio-isbn-utils.version>1.7.0-SNAPSHOT</folio-isbn-utils.version>
+    <folio-cql2pgjson.version>35.2.2</folio-cql2pgjson.version>
+    <opensearch.version>2.13.0</opensearch.version>
+    <mapstruct.version>1.5.5.Final</mapstruct.version>
+    <apache-commons-io.version>2.16.1</apache-commons-io.version>
     <apache-commons-collections.version>4.4</apache-commons-collections.version>
-    <marc4j.version>2.9.2</marc4j.version>
-    <lombok.version>1.18.26</lombok.version>
+    <marc4j.version>2.9.5</marc4j.version>
+    <lombok.version>1.18.32</lombok.version>
     <lombok.mapstruct-binding.version>0.2.0</lombok.mapstruct-binding.version>
-    <streamex.version>0.8.1</streamex.version>
-
-    <!-- Test dependencies versions -->
-    <testcontainers.version>1.19.0</testcontainers.version>
-    <wiremock.version>2.27.2</wiremock.version>
-    <awaitility.version>4.2.0</awaitility.version>
+    <streamex.version>0.8.2</streamex.version>
+    <jackson-bom.version>2.16.0</jackson-bom.version>
 
     <!-- Plugins versions -->
-    <maven-openapi-generator-plugin.version>6.2.1</maven-openapi-generator-plugin.version>
+    <maven-openapi-generator-plugin.version>7.4.0</maven-openapi-generator-plugin.version>
     <maven-copy-rename-plugin.version>1.0.1</maven-copy-rename-plugin.version>
-    <maven-build-helper-plugin.version>3.3.0</maven-build-helper-plugin.version>
-    <maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
-    <maven-resources-plugin.version>3.3.0</maven-resources-plugin.version>
-    <maven-checkstyle-plugin.version>3.2.0</maven-checkstyle-plugin.version>
-    <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
-    <maven-surefire-plugin.version>3.0.0-M7</maven-surefire-plugin.version>
-    <maven-failsafe-plugin.version>3.0.0-M7</maven-failsafe-plugin.version>
-    <maven-release-plugin.version>3.0.0-M7</maven-release-plugin.version>
+    <maven-build-helper-plugin.version>3.5.0</maven-build-helper-plugin.version>
+    <maven-clean-plugin.version>3.3.2</maven-clean-plugin.version>
+    <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+    <maven-checkstyle-plugin.version>3.3.1</maven-checkstyle-plugin.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+    <maven-failsafe-plugin.version>3.2.5</maven-failsafe-plugin.version>
+    <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
+    <checkstyle.version>10.16.0</checkstyle.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.folio</groupId>
       <artifactId>folio-spring-base</artifactId>
-      <version>${folio-spring-base.version}</version>
+      <version>${folio-spring-support.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>folio-spring-system-user</artifactId>
+      <version>${folio-spring-support.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>software.amazon.ion</groupId>
+          <artifactId>ion-java</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -96,7 +103,6 @@
     <dependency>
       <groupId>org.springframework.kafka</groupId>
       <artifactId>spring-kafka</artifactId>
-      <version>${spring-kafka.version}</version>
     </dependency>
 
     <dependency>
@@ -251,52 +257,15 @@
     </dependency>
 
     <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers</artifactId>
-      <version>${testcontainers.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <version>${testcontainers.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>kafka</artifactId>
-      <version>${testcontainers.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>postgresql</artifactId>
-      <version>${testcontainers.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <version>${awaitility.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>com.github.tomakehurst</groupId>
-      <artifactId>wiremock-standalone</artifactId>
-      <version>${wiremock.version}</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.folio</groupId>
-      <artifactId>folio-service-tools-spring-test</artifactId>
-      <version>${folio-service-tools.version}</version>
-      <scope>test</scope>
+      <artifactId>folio-spring-testing</artifactId>
+      <version>${folio-spring-support.version}</version>
     </dependency>
   </dependencies>
 
@@ -402,7 +371,8 @@
             </goals>
             <configuration>
               <sources>
-                <source>${project.build.directory}/generated-sources</source>
+                <source>${project.build.directory}/generated-sources/annotations</source>
+                <source>${project.build.directory}/generated-sources/src/main/java</source>
               </sources>
             </configuration>
           </execution>
@@ -417,7 +387,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.4</version>
+            <version>${checkstyle.version}</version>
           </dependency>
         </dependencies>
         <executions>
@@ -469,10 +439,12 @@
               <generateModelDocumentation>true</generateModelDocumentation>
               <configOptions>
                 <java8>true</java8>
+                <useTags>true</useTags>
                 <dateLibrary>java</dateLibrary>
                 <interfaceOnly>true</interfaceOnly>
                 <useSpringBoot3>true</useSpringBoot3>
                 <requestMappingMode>api_interface</requestMappingMode>
+                <generatedConstructorWithRequiredArgs>false</generatedConstructorWithRequiredArgs>
               </configOptions>
             </configuration>
           </execution>

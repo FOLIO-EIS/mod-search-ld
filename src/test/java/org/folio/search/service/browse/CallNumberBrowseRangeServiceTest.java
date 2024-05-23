@@ -9,10 +9,11 @@ import static org.folio.search.utils.SearchUtils.INSTANCE_RESOURCE;
 import static org.folio.search.utils.TestConstants.TENANT_ID;
 import static org.folio.search.utils.TestUtils.aggregationsFromJson;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,8 +25,8 @@ import java.util.stream.Stream;
 import org.folio.search.model.SimpleResourceRequest;
 import org.folio.search.model.service.CallNumberBrowseRangeValue;
 import org.folio.search.repository.SearchRepository;
-import org.folio.search.service.setter.item.ItemCallNumberProcessor;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.search.utils.CallNumberUtils;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.search.SearchResponse;
@@ -47,13 +49,11 @@ import org.springframework.lang.NonNull;
 @ExtendWith(MockitoExtension.class)
 class CallNumberBrowseRangeServiceTest {
 
-  @InjectMocks
-  private CallNumberBrowseRangeService callNumberBrowseRangeService;
-
+  private static final String RANGE_FIELD = "callNumber";
   @Spy
   private final Cache<String, List<CallNumberBrowseRangeValue>> cache = Caffeine.from("maximumSize=50").build();
-  @Spy
-  private final ItemCallNumberProcessor itemCallNumberProcessor = new ItemCallNumberProcessor();
+  @InjectMocks
+  private CallNumberBrowseRangeService callNumberBrowseRangeService;
   @Captor
   private ArgumentCaptor<SearchSourceBuilder> searchSourceCaptor;
 
@@ -71,32 +71,37 @@ class CallNumberBrowseRangeServiceTest {
   void getBrowseRanges_positive() {
     var request = SimpleResourceRequest.of(INSTANCE_RESOURCE, TENANT_ID);
     when(searchRepository.search(eq(request), searchSourceCaptor.capture())).thenReturn(searchResponse);
-    when(itemCallNumberProcessor.getCallNumberAsLong(anyString())).thenReturn(1L);
-    when(searchResponse.getAggregations()).thenReturn(aggregationsFromJson(jsonObject(
-      "range#cnRanges", jsonObject("buckets", jsonArray(bucket("A", 10), bucket("B", 20))))));
+    when(searchResponse.getAggregations()).thenReturn(aggregationsFromJson(
+      jsonObject(
+        "range#cnRanges",
+        jsonObject("buckets", jsonArray(bucket("A", 10), bucket("B", 20)))
+      )));
 
-    var firstAttempt = callNumberBrowseRangeService.getBrowseRanges(TENANT_ID);
+    try (MockedStatic<CallNumberUtils> mock = mockStatic(CallNumberUtils.class)) {
+      mock.when(() -> CallNumberUtils.getCallNumberAsLong(anyString(), anyInt())).thenReturn(1L);
 
-    var expectedRanges = List.of(rangeValue("A", 10), rangeValue("B", 20));
-    assertThat(firstAttempt).isEqualTo(expectedRanges);
+      var firstAttempt = callNumberBrowseRangeService.getBrowseRanges(TENANT_ID, RANGE_FIELD, -1);
 
-    var secondAttempt = callNumberBrowseRangeService.getBrowseRanges(TENANT_ID);
-    assertThat(secondAttempt).isEqualTo(expectedRanges);
+      var expectedRanges = List.of(rangeValue("A", 10), rangeValue("B", 20));
+      assertThat(firstAttempt).isEqualTo(expectedRanges);
 
-    verify(itemCallNumberProcessor, times(36)).getCallNumberAsLong(anyString());
+      var secondAttempt = callNumberBrowseRangeService.getBrowseRanges(TENANT_ID, RANGE_FIELD, -1);
+      assertThat(secondAttempt).isEqualTo(expectedRanges);
+      mock.verify(() -> CallNumberUtils.getCallNumberAsLong(anyString(), anyInt()), times(36));
 
-    var searchSource = searchSourceCaptor.getValue();
-    var aggregations = searchSource.aggregations();
-    var rangeAggregation = (RangeAggregationBuilder) aggregations.getAggregatorFactories().iterator().next();
-    assertThat(aggregations.count()).isEqualTo(1);
-    assertThat(rangeAggregation.ranges()).hasSize(36);
+      var searchSource = searchSourceCaptor.getValue();
+      var aggregations = searchSource.aggregations();
+      var rangeAggregation = (RangeAggregationBuilder) aggregations.getAggregatorFactories().iterator().next();
+      assertThat(aggregations.count()).isEqualTo(1);
+      assertThat(rangeAggregation.ranges()).hasSize(36);
+    }
   }
 
   @Test
   void evictCache_positive() {
     var cachedValue = singletonList(rangeValue("A", 10, 10));
-    cache.put(TENANT_ID, cachedValue);
-    var actual = callNumberBrowseRangeService.getBrowseRanges(TENANT_ID);
+    putValueToCache(cachedValue);
+    var actual = callNumberBrowseRangeService.getBrowseRanges(TENANT_ID, RANGE_FIELD, -1);
     assertThat(actual).isEqualTo(cachedValue);
     callNumberBrowseRangeService.evictRangeCache(TENANT_ID);
 
@@ -105,16 +110,18 @@ class CallNumberBrowseRangeServiceTest {
 
   @Test
   void getRangeBoundaryForBrowsing_positive_emptyRanges() {
-    cache.put(TENANT_ID, emptyList());
-    var actual = callNumberBrowseRangeService.getRangeBoundaryForBrowsing(TENANT_ID, "A", 30, true);
+    putValueToCache(emptyList());
+    var actual = callNumberBrowseRangeService.getRangeBoundaryForBrowsing(TENANT_ID, "A", RANGE_FIELD, -1,
+      30, true);
     assertThat(actual).isEmpty();
   }
 
   @ParameterizedTest
   @MethodSource("getRangeBoundaryDataSource")
   void getRangeBoundaryForBrowsing_parameterized(String anchor, int size, boolean isBrowsingForward, Long expected) {
-    cache.put(TENANT_ID, getCallNumberBrowseRangeValues());
-    var actual = callNumberBrowseRangeService.getRangeBoundaryForBrowsing(TENANT_ID, anchor, size, isBrowsingForward);
+    putValueToCache(getCallNumberBrowseRangeValues());
+    var actual = callNumberBrowseRangeService.getRangeBoundaryForBrowsing(TENANT_ID, anchor, RANGE_FIELD, -1, size,
+      isBrowsingForward);
     assertThat(actual).isEqualTo(Optional.ofNullable(expected));
   }
 
@@ -172,6 +179,10 @@ class CallNumberBrowseRangeServiceTest {
       arguments("EM", 45, false, 2L),
       arguments("EM", 60, false, 1L)
     );
+  }
+
+  private void putValueToCache(List<CallNumberBrowseRangeValue> cachedValue) {
+    cache.put(TENANT_ID + ":" + RANGE_FIELD + ":" + -1, cachedValue);
   }
 
   @NonNull

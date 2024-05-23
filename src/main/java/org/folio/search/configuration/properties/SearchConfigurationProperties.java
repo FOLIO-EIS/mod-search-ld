@@ -37,6 +37,11 @@ public class SearchConfigurationProperties {
   private long maxSupportedLanguages = 5L;
 
   /**
+   * Provides the maximum number offset for additional elasticsearch requests on browse around.
+   */
+  private long maxBrowseRequestOffset = 500L;
+
+  /**
    * Provides map with global features configuration. Can be overwritten by tenant configuration.
    */
   private Map<TenantConfiguredFeature, Boolean> searchFeatures = emptyMap();
@@ -76,4 +81,5 @@ public class SearchConfigurationProperties {
     @Min(0)
     private int retryAttempts = 3;
   }
+
 }

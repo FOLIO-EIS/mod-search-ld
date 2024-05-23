@@ -2,7 +2,9 @@ package org.folio.search.cql.builders;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.folio.search.utils.TestConstants.EMPTY_TERM_MODIFIERS;
 import static org.folio.search.utils.TestConstants.RESOURCE_NAME;
+import static org.folio.search.utils.TestConstants.STRING_TERM_MODIFIERS;
 import static org.folio.search.utils.TestUtils.multilangField;
 import static org.folio.search.utils.TestUtils.standardField;
 import static org.mockito.Mockito.when;
@@ -14,7 +16,7 @@ import static org.opensearch.index.query.QueryBuilders.termQuery;
 import java.util.List;
 import java.util.Optional;
 import org.folio.search.service.metadata.SearchFieldProvider;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,8 +35,14 @@ class ExactTermQueryBuilderTest {
 
   @Test
   void getQuery_positive() {
-    var actual = queryBuilder.getQuery("value", RESOURCE_NAME, "f1.*", "f2");
+    var actual = queryBuilder.getQuery("value", RESOURCE_NAME, EMPTY_TERM_MODIFIERS, "f1.*", "f2");
     assertThat(actual).isEqualTo(multiMatchQuery("value", "f1.*", "f2").type(PHRASE));
+  }
+
+  @Test
+  void getQuery_positive_stringModifier() {
+    var actual = queryBuilder.getQuery("value", RESOURCE_NAME, STRING_TERM_MODIFIERS, "f1.*", "f2");
+    assertThat(actual).isEqualTo(multiMatchQuery("value", "plain_f1", "f2").type(PHRASE));
   }
 
   @Test

@@ -1,13 +1,10 @@
 package org.folio.search.utils;
 
 import static java.util.Locale.ROOT;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toMap;
 import static org.folio.search.utils.CollectionUtils.mergeSafelyToSet;
-import static org.folio.spring.tools.config.properties.FolioEnvironment.getFolioEnvName;
+import static org.folio.spring.config.properties.FolioEnvironment.getFolioEnvName;
 
 import com.google.common.base.CaseFormat;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,8 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.commons.collections.MapUtils;
@@ -25,36 +21,51 @@ import org.folio.search.domain.dto.Authority;
 import org.folio.search.domain.dto.Contributor;
 import org.folio.search.domain.dto.Instance;
 import org.folio.search.domain.dto.ResourceEvent;
+import org.folio.search.domain.dto.ShelvingOrderAlgorithmType;
 import org.folio.search.exception.SearchOperationException;
 import org.folio.search.model.ResourceRequest;
 import org.folio.search.model.index.SearchDocumentBody;
 import org.folio.search.model.metadata.PlainFieldDescription;
 import org.folio.search.model.service.MultilangValue;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation.Bucket;
-import org.opensearch.search.aggregations.bucket.terms.ParsedTerms;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class SearchUtils {
 
   public static final String INSTANCE_RESOURCE = getResourceName(Instance.class);
   public static final String INSTANCE_SUBJECT_RESOURCE = "instance_subject";
+  public static final String INSTANCE_CLASSIFICATION_RESOURCE = "instance_classification";
   public static final String AUTHORITY_RESOURCE = getResourceName(Authority.class);
   public static final String CONTRIBUTOR_RESOURCE = getResourceName(Contributor.class);
+  public static final String LOCATION_RESOURCE = "location";
+  public static final String CLASSIFICATION_TYPE_RESOURCE = "classification-type";
   public static final String BIBFRAME_RESOURCE = "bibframe";
 
   public static final String ID_FIELD = "id";
+  public static final String SOURCE_FIELD = "source";
   public static final String INSTANCE_ID_FIELD = "instanceId";
   public static final String INSTANCE_ITEM_FIELD_NAME = "items";
   public static final String INSTANCE_HOLDING_FIELD_NAME = "holdings";
   public static final String INSTANCE_CONTRIBUTORS_FIELD_NAME = "contributors";
+  public static final String SHARED_FIELD_NAME = "shared";
+  public static final String TENANT_ID_FIELD_NAME = "tenantId";
   public static final String IS_BOUND_WITH_FIELD_NAME = "isBoundWith";
   public static final String CALL_NUMBER_BROWSING_FIELD = "callNumber";
+  public static final String CLASSIFICATION_NUMBER_BROWSING_FIELD = "number";
+  public static final String CLASSIFICATION_TYPE_ID_FIELD = "typeId";
+  public static final String TYPED_CALL_NUMBER_BROWSING_FIELD = "typedCallNumber";
   public static final String SHELVING_ORDER_BROWSING_FIELD = "itemEffectiveShelvingOrder";
+  public static final String DEFAULT_SHELVING_ORDER_BROWSING_FIELD = "defaultShelvingOrder";
+  public static final String LC_SHELVING_ORDER_BROWSING_FIELD = "lcShelvingOrder";
+  public static final String DEWEY_SHELVING_ORDER_BROWSING_FIELD = "deweyShelvingOrder";
   public static final String SUBJECT_BROWSING_FIELD = "value";
   public static final String CONTRIBUTOR_BROWSING_FIELD = "name";
   public static final String AUTHORITY_BROWSING_FIELD = "headingRef";
+  public static final String AUTHORITY_ID_FIELD = "authorityId";
+  public static final String CLASSIFICATIONS_FIELD = "classifications";
+  public static final String CLASSIFICATION_NUMBER_FIELD = "classificationNumber";
+  public static final String CLASSIFICATION_TYPE_FIELD = "classificationTypeId";
   public static final String SUBJECT_AGGREGATION_NAME = "subjects.value";
+  public static final String SOURCE_CONSORTIUM_PREFIX = "CONSORTIUM-";
 
   public static final String CQL_META_FIELD_PREFIX = "cql.";
   public static final String MULTILANG_SOURCE_SUBFIELD = "src";
@@ -66,13 +77,19 @@ public class SearchUtils {
   public static final String KEYWORD_FIELD_INDEX = "keyword";
   public static final float CONST_SIZE_LOAD_FACTOR = 1.0f;
 
+  public static final Map<ShelvingOrderAlgorithmType, String> BROWSE_FIELDS_MAP = Map.of(
+    ShelvingOrderAlgorithmType.DEFAULT, DEFAULT_SHELVING_ORDER_BROWSING_FIELD,
+    ShelvingOrderAlgorithmType.LC, LC_SHELVING_ORDER_BROWSING_FIELD,
+    ShelvingOrderAlgorithmType.DEWEY, DEWEY_SHELVING_ORDER_BROWSING_FIELD
+  );
+
   //CHECKSTYLE.ON: LineLength
   public static final String INSTANCE_SUBJECT_UPSERT_SCRIPT_ID = "instance_subject_upsert_script";
   public static final String INSTANCE_SUBJECT_UPSERT_SCRIPT = """
     {
       "script": {
         "lang": "painless",
-        "source": "def instanceIds=new LinkedHashSet(ctx._source.instances);instanceIds.addAll(params.ins);params.del.forEach(instanceIds::remove);if (instanceIds.isEmpty()) {ctx.op = 'delete'; return;}ctx._source.instances=instanceIds;"
+        "source": "def instances=new LinkedHashSet(ctx._source.instances);instances.addAll(params.ins);params.del.forEach(instances::remove);if (instances.isEmpty()) {ctx.op = 'delete'; return;}ctx._source.instances=instances;"
       }
     }
     """;
@@ -81,11 +98,14 @@ public class SearchUtils {
     {
       "script" : {
         "lang" : "painless",
-        "source" : "def instanceIds=new LinkedHashSet(ctx._source.instances);instanceIds.addAll(params.ins);params.del.forEach(instanceIds::remove);if (instanceIds.isEmpty()) {ctx.op = 'delete'; return;}ctx._source.instances=instanceIds;def typeIds=instanceIds.stream().map(id -> id.splitOnToken('|')[1]).sorted().collect(Collectors.toCollection(LinkedHashSet::new));ctx._source.contributorTypeId=typeIds"
+        "source" : "def instances=new LinkedHashSet(ctx._source.instances);instances.addAll(params.ins);params.del.forEach(instances::remove);if (instances.isEmpty()) {ctx.op = 'delete'; return;}ctx._source.instances=instances;"
       }
     }
     """;
   //CHECKSTYLE.OFF: LineLength
+
+  private static final Pattern LCCN_NUMERIC_PART_REGEX = Pattern.compile("([1-9]\\d+)");
+  private static final Pattern NON_ALPHA_NUMERIC_CHARS_PATTERN = Pattern.compile("[^a-zA-Z0-9]");
 
   /**
    * Performs elasticsearch exceptional operation and returns the received result.
@@ -133,7 +153,7 @@ public class SearchUtils {
    * @return generated index name.
    */
   public static String getIndexName(String resource, String tenantId) {
-    return getFolioEnvName().toLowerCase(ROOT) + "_" + resource + "_" + tenantId;
+    return getFolioEnvName().toLowerCase(ROOT) + "_" + resource.toLowerCase(ROOT) + "_" + tenantId;
   }
 
   /**
@@ -199,34 +219,6 @@ public class SearchUtils {
    */
   public static boolean isMultilangFieldPath(String path) {
     return path != null && path.endsWith(".*");
-  }
-
-  /**
-   * Creates call number for passed prefix, call number and suffix.
-   *
-   * @param prefix     call number prefix
-   * @param callNumber call number value
-   * @param suffix     call number suffix
-   * @return created effective call number as {@link String} value
-   */
-  public static String getEffectiveCallNumber(String prefix, String callNumber, String suffix) {
-    return Stream.of(prefix, callNumber, suffix)
-      .filter(StringUtils::isNotBlank)
-      .map(String::trim)
-      .collect(joining(" "));
-  }
-
-  /**
-   * Creates normalized call number for passed call number parts (prefix, call number and suffix).
-   *
-   * @param callNumberValues array with full call number parts (prefix, call number and suffix)
-   * @return created normalized call number as {@link String} value
-   */
-  public static String getNormalizedCallNumber(String... callNumberValues) {
-    return Stream.of(callNumberValues)
-      .filter(StringUtils::isNotBlank)
-      .map(s -> s.toLowerCase().replaceAll("[^a-z\\d]", ""))
-      .collect(Collectors.joining(""));
   }
 
   /**
@@ -321,24 +313,6 @@ public class SearchUtils {
   }
 
   /**
-   * Get subject count from count search request.
-   *
-   * @param searchResponse - search response as {@link SearchResponse} object.
-   * @return map with key as the subject name, value as the related subject count.
-   */
-  public static Map<String, Long> getSubjectCounts(SearchResponse searchResponse) {
-    return Optional.ofNullable(searchResponse)
-      .map(SearchResponse::getAggregations)
-      .map(aggregations -> aggregations.get(SUBJECT_AGGREGATION_NAME))
-      .filter(ParsedTerms.class::isInstance)
-      .map(ParsedTerms.class::cast)
-      .map(ParsedTerms::getBuckets)
-      .stream()
-      .flatMap(Collection::stream)
-      .collect(toMap(Bucket::getKeyAsString, Bucket::getDocCount));
-  }
-
-  /**
    * Returns number of requests in map as integer value.
    *
    * @param requestsPerResource - map with requests per resource name
@@ -353,6 +327,38 @@ public class SearchUtils {
       .filter(Objects::nonNull)
       .mapToInt(List::size)
       .sum();
+  }
+
+  /**
+   * Normalizes LCCN value.
+   *
+   * @param value LCCN value
+   * @return normalized LCCN value
+   */
+  public static String normalizeLccn(String value) {
+    if (StringUtils.isBlank(value)) {
+      return null;
+    }
+
+    return StringUtils.deleteWhitespace(value).toLowerCase();
+  }
+
+  /**
+   * This method normalize the given string to an alphanumeric string.
+   * If the input string is null or blank, this method returns null.
+   * Non-alphanumeric characters in the input string are replaced with an empty string.
+   * If the resulting string is blank, this method returns null.
+   *
+   * @param value The String that is to be normalized.
+   * @return The normalized alphanumeric string. If the input string or the resulting string is blank, returns null.
+   */
+  public static String normalizeToAlphaNumeric(String value) {
+    return Optional.ofNullable(value)
+      .filter(StringUtils::isNotBlank)
+      .map(NON_ALPHA_NUMERIC_CHARS_PATTERN::matcher)
+      .map(matcher -> matcher.replaceAll(""))
+      .filter(StringUtils::isNotBlank)
+      .orElse(null);
   }
 
   private static Object getMultilangValueObject(Object value) {

@@ -1,13 +1,11 @@
 package org.folio.search.model.index;
 
-import static org.folio.search.utils.SearchUtils.getIndexName;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.folio.search.domain.dto.ResourceEvent;
 import org.folio.search.model.types.IndexActionType;
 import org.folio.search.model.types.IndexingDataFormat;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 
 /**
  * Contains all required field to perform elasticsearch index operation in mod-search service.
@@ -63,12 +61,4 @@ public class SearchDocumentBody {
     return resourceEvent.getResourceName();
   }
 
-  /**
-   * Returns search document body index name.
-   *
-   * @return Elasticsearch index name as {@link String} object.
-   */
-  public String getIndex() {
-    return getIndexName(resourceEvent);
-  }
 }

@@ -8,12 +8,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.lang3.SerializationException;
 import org.folio.search.utils.TestUtils.NonSerializableByJacksonClass;
 import org.folio.search.utils.TestUtils.TestClass;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.core.common.bytes.BytesArray;
 
 @UnitTest
 @ExtendWith(MockitoExtension.class)

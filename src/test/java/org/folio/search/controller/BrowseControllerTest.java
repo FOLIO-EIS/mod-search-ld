@@ -14,23 +14,31 @@ import static org.folio.search.utils.TestConstants.TENANT_ID;
 import static org.folio.search.utils.TestUtils.authorityBrowseItem;
 import static org.folio.search.utils.TestUtils.subjectBrowseItem;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.folio.search.domain.dto.Authority;
 import org.folio.search.model.BrowseResult;
 import org.folio.search.model.service.BrowseRequest;
 import org.folio.search.service.browse.AuthorityBrowseService;
 import org.folio.search.service.browse.CallNumberBrowseService;
+import org.folio.search.service.browse.ClassificationBrowseService;
 import org.folio.search.service.browse.ContributorBrowseService;
 import org.folio.search.service.browse.SubjectBrowseService;
+import org.folio.search.service.consortium.TenantProvider;
+import org.folio.search.service.setter.SearchResponsePostProcessor;
 import org.folio.spring.integration.XOkapiHeaders;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -52,6 +60,18 @@ class BrowseControllerTest {
   private CallNumberBrowseService callNumberBrowseService;
   @MockBean
   private ContributorBrowseService contributorBrowseService;
+  @MockBean
+  private ClassificationBrowseService classificationBrowseService;
+  @MockBean
+  private TenantProvider tenantProvider;
+  @Mock
+  private Map<Class<?>, SearchResponsePostProcessor<?>> searchResponsePostProcessors = Collections.emptyMap();
+
+  @BeforeEach
+  public void setUp() {
+    lenient().when(tenantProvider.getTenant(TENANT_ID))
+      .thenReturn(TENANT_ID);
+  }
 
   @Test
   void browseInstancesByCallNumber_positive() throws Exception {
@@ -185,7 +205,7 @@ class BrowseControllerTest {
         "browseInstancesByCallNumber.precedingRecordsCount must be greater than or equal to 1")));
   }
 
-  public static BrowseRequest browseRequest(String query, int limit) {
+  private BrowseRequest browseRequest(String query, int limit) {
     return BrowseRequest.of(INSTANCE_RESOURCE, TENANT_ID, query, limit,
       SHELVING_ORDER_BROWSING_FIELD, CALL_NUMBER_BROWSING_FIELD, false, true, limit / 2);
   }

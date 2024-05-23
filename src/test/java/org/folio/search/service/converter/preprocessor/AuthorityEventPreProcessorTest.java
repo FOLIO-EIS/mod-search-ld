@@ -1,6 +1,7 @@
 package org.folio.search.service.converter.preprocessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.folio.search.domain.dto.ResourceEventType.CREATE;
 import static org.folio.search.domain.dto.ResourceEventType.DELETE;
 import static org.folio.search.domain.dto.ResourceEventType.REINDEX;
 import static org.folio.search.domain.dto.ResourceEventType.UPDATE;
@@ -8,25 +9,29 @@ import static org.folio.search.model.metadata.PlainFieldDescription.STANDARD_FIE
 import static org.folio.search.utils.AuthoritySearchUtils.expectedAuthorityAsMap;
 import static org.folio.search.utils.SearchUtils.AUTHORITY_RESOURCE;
 import static org.folio.search.utils.TestConstants.RESOURCE_ID;
+import static org.folio.search.utils.TestConstants.TENANT_ID;
 import static org.folio.search.utils.TestUtils.keywordField;
 import static org.folio.search.utils.TestUtils.mapOf;
 import static org.folio.search.utils.TestUtils.objectField;
 import static org.folio.search.utils.TestUtils.resourceEvent;
 import static org.folio.search.utils.TestUtils.standardField;
 import static org.folio.search.utils.TestUtils.toMap;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.folio.search.domain.dto.Authority;
-import org.folio.search.domain.dto.Identifiers;
+import org.folio.search.domain.dto.Identifier;
 import org.folio.search.domain.dto.ResourceEvent;
 import org.folio.search.model.metadata.AuthorityFieldDescription;
 import org.folio.search.model.metadata.FieldDescription;
 import org.folio.search.model.metadata.ResourceDescription;
+import org.folio.search.service.consortium.ConsortiumTenantService;
 import org.folio.search.service.metadata.ResourceDescriptionService;
 import org.folio.search.utils.TestUtils;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,17 +47,20 @@ class AuthorityEventPreProcessorTest {
   private AuthorityEventPreProcessor eventPreProcessor;
   @Mock
   private ResourceDescriptionService resourceDescriptionService;
+  @Mock
+  private ConsortiumTenantService consortiumTenantService;
 
   @BeforeEach
   void setUp() {
     when(resourceDescriptionService.get(AUTHORITY_RESOURCE)).thenReturn(authorityResourceDescription());
+    lenient().when(consortiumTenantService.getCentralTenant(TENANT_ID)).thenReturn(Optional.empty());
     eventPreProcessor.init();
   }
 
   @Test
   void process_positive() {
     var authority = fullAuthorityRecord();
-    var actual = eventPreProcessor.process(resourceEvent(AUTHORITY_RESOURCE, toMap(authority)));
+    var actual = eventPreProcessor.preProcess(resourceEvent(AUTHORITY_RESOURCE, toMap(authority)));
     assertThat(actual).isEqualTo(List.of(
       event("personalName0", expectedAuthorityAsMap(authority, "personalName")),
       event("sftPersonalName0", expectedAuthorityAsMap(authority, "sftPersonalName[0]")),
@@ -79,7 +87,7 @@ class AuthorityEventPreProcessorTest {
   @Test
   void process_positive_onlyPersonalIsPopulated() {
     var authority = new Authority().id(RESOURCE_ID).personalName("a personal name");
-    var actual = eventPreProcessor.process(resourceEvent(AUTHORITY_RESOURCE, toMap(authority)));
+    var actual = eventPreProcessor.preProcess(resourceEvent(AUTHORITY_RESOURCE, toMap(authority)));
     assertThat(actual).isEqualTo(List.of(
       event("personalName0", expectedAuthorityAsMap(authority, "personalName"))));
   }
@@ -88,7 +96,7 @@ class AuthorityEventPreProcessorTest {
   void process_positive_reindexEvent() {
     var authority = new Authority().id(RESOURCE_ID).uniformTitle("uniform title");
     var event = resourceEvent(AUTHORITY_RESOURCE, toMap(authority)).type(REINDEX);
-    var actual = eventPreProcessor.process(event);
+    var actual = eventPreProcessor.preProcess(event);
     assertThat(actual).isEqualTo(List.of(
       event("uniformTitle0", expectedAuthorityAsMap(authority, "uniformTitle")).type(REINDEX)));
   }
@@ -96,8 +104,8 @@ class AuthorityEventPreProcessorTest {
   @Test
   void process_positive_onlyCommonFieldsArePopulated() {
     var authority = new Authority().id(RESOURCE_ID).subjectHeadings("a subject headings")
-      .identifiers(List.of(new Identifiers().value("an authority identifier")));
-    var actual = eventPreProcessor.process(resourceEvent(AUTHORITY_RESOURCE, toMap(authority)));
+      .identifiers(List.of(new Identifier().value("an authority identifier")));
+    var actual = eventPreProcessor.preProcess(resourceEvent(AUTHORITY_RESOURCE, toMap(authority)));
     assertThat(actual).isEqualTo(List.of(event("other0", expectedAuthorityAsMap(authority))));
   }
 
@@ -105,7 +113,7 @@ class AuthorityEventPreProcessorTest {
   void process_positive_deleteEvent() {
     var oldAuthority = new Authority().id(RESOURCE_ID).personalName("personal").corporateNameTitle("corporate");
     var event = resourceEvent(AUTHORITY_RESOURCE, null).type(DELETE).old(toMap(oldAuthority));
-    var actual = eventPreProcessor.process(event);
+    var actual = eventPreProcessor.preProcess(event);
     assertThat(actual).isEqualTo(List.of(deleteEvent("personalName0"), deleteEvent("corporateNameTitle0")));
   }
 
@@ -116,13 +124,25 @@ class AuthorityEventPreProcessorTest {
     var oldAuthority = new Authority().id(RESOURCE_ID).personalNameTitle("personal").uniformTitle("uniform title")
       .saftCorporateNameTitle(List.of("saft corp 1", "saft corp 2"));
     var event = resourceEvent(AUTHORITY_RESOURCE, toMap(newAuthority)).type(UPDATE).old(toMap(oldAuthority));
-    var actual = eventPreProcessor.process(event);
+    var actual = eventPreProcessor.preProcess(event);
     assertThat(actual).isEqualTo(List.of(
       event("personalNameTitle0", expectedAuthorityAsMap(newAuthority, "personalNameTitle")),
       event("corporateNameTitle0", expectedAuthorityAsMap(newAuthority, "corporateNameTitle")),
       event("saftCorporateNameTitle0", expectedAuthorityAsMap(newAuthority, "saftCorporateNameTitle[0]")),
       deleteEvent("saftCorporateNameTitle1"),
       deleteEvent("uniformTitle0")));
+  }
+
+  @Test
+  void process_positive_shouldSetSharedFlag() {
+    var newAuthority = new Authority().id(RESOURCE_ID).personalNameTitle("personal");
+    var event = resourceEvent(AUTHORITY_RESOURCE, toMap(newAuthority)).type(CREATE);
+
+    when(consortiumTenantService.getCentralTenant(TENANT_ID)).thenReturn(Optional.of(TENANT_ID));
+
+    var actual = eventPreProcessor.preProcess(event);
+    assertThat(actual).isEqualTo(List.of(
+      event("personalNameTitle0", expectedAuthorityAsMap(newAuthority, true, "personalNameTitle"))));
   }
 
   private static ResourceEvent event(String prefix, Map<String, Object> body) {
@@ -152,7 +172,7 @@ class AuthorityEventPreProcessorTest {
       .sftUniformTitle(List.of("a sft uniform title"))
       .saftUniformTitle(List.of("a saft uniform title"))
       .subjectHeadings("a subject heading")
-      .identifiers(List.of(new Identifiers()
+      .identifiers(List.of(new Identifier()
         .value("an identifier value")
         .identifierTypeId("an identifier type id")));
   }
@@ -160,6 +180,7 @@ class AuthorityEventPreProcessorTest {
   private static ResourceDescription authorityResourceDescription() {
     return TestUtils.resourceDescription(AUTHORITY_RESOURCE, mapOf(
       "id", keywordField(),
+      "tenantId", keywordField(),
       "subjectHeadings", standardField(),
       "identifiers", objectField(mapOf(
         "identifierTypeId", keywordField(),
@@ -178,7 +199,8 @@ class AuthorityEventPreProcessorTest {
       "saftCorporateNameTitle", authorityField("saftCorporateNameTitle"),
       "uniformTitle", authorityField("uniformTitle"),
       "sftUniformTitle", authorityField("sftUniformTitle"),
-      "saftUniformTitle", authorityField("saftUniformTitle")
+      "saftUniformTitle", authorityField("saftUniformTitle"),
+      "shared", standardField()
     ));
   }
 

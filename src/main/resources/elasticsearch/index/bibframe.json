@@ -15,23 +15,44 @@
     },
     "normalizer": {
       "keyword_lowercase": {
-        "filter": [ "lowercase", "trim" ],
+        "filter": [
+          "lowercase",
+          "trim"
+        ],
         "type": "custom"
       },
       "keyword_uppercase": {
-        "filter": [ "uppercase", "trim" ],
+        "filter": [
+          "uppercase",
+          "trim"
+        ],
         "type": "custom"
       },
       "keyword_trimmed": {
-        "filter": [ "trim" ],
+        "filter": [
+          "trim"
+        ],
         "type": "custom"
       }
     },
     "analyzer": {
       "source_analyzer": {
         "tokenizer": "icu_tokenizer",
-        "filter": [ "folio_word_delimiter_graph", "icu_folding" ],
-        "char_filter": [ "and_char_replacement" ],
+        "filter": [
+          "folio_word_delimiter_graph",
+          "icu_folding"
+        ],
+        "char_filter": [
+          "and_char_replacement"
+        ],
+        "type": "custom"
+      },
+      "whitespace_lowercase_analyzer": {
+        "tokenizer": "whitespace",
+        "filter": [
+          "lowercase",
+          "icu_folding"
+        ],
         "type": "custom"
       }
     },

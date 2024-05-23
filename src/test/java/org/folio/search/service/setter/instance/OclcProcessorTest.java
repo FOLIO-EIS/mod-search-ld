@@ -16,10 +16,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
-import org.folio.search.domain.dto.Identifiers;
+import org.folio.search.domain.dto.Identifier;
 import org.folio.search.domain.dto.Instance;
 import org.folio.search.integration.ReferenceDataService;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.search.model.client.CqlQueryParam;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -80,17 +81,12 @@ class OclcProcessorTest {
     );
   }
 
-  private static Identifiers oclc(String value) {
+  private static Identifier oclc(String value) {
     return identifier(OCLC_IDENTIFIER_TYPE_ID, value);
   }
 
-  private static Identifiers canceledOclc(String value) {
+  private static Identifier canceledOclc(String value) {
     return identifier(CANCELED_OCLC_IDENTIFIER_TYPE_ID, value);
-  }
-
-  private void mockFetchReferenceData(Set<String> referenceData) {
-    when(referenceDataService.fetchReferenceData(IDENTIFIER_TYPES, oclcProcessor.getIdentifierNames()))
-      .thenReturn(referenceData);
   }
 
   @MethodSource("oclcDataProvider")
@@ -110,5 +106,11 @@ class OclcProcessorTest {
     mockFetchReferenceData(emptySet());
     var actual = oclcProcessor.getFieldValue(instanceWithIdentifiers(oclc("123456")));
     assertThat(actual).isEmpty();
+  }
+
+  private void mockFetchReferenceData(Set<String> referenceData) {
+    when(referenceDataService.fetchReferenceData(IDENTIFIER_TYPES, CqlQueryParam.NAME,
+      oclcProcessor.getIdentifierNames()))
+      .thenReturn(referenceData);
   }
 }

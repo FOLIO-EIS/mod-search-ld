@@ -1,6 +1,7 @@
 package org.folio.search.service.converter;
 
 import static java.util.Collections.emptyMap;
+import static org.folio.search.utils.LogUtils.collectionToLogMsg;
 import static org.folio.search.utils.SearchConverterUtils.getNewAsMap;
 
 import java.util.LinkedHashMap;
@@ -12,7 +13,7 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.folio.search.model.converter.ConversionContext;
 import org.folio.search.model.metadata.SearchFieldDescriptor;
-import org.folio.search.service.FeatureConfigService;
+import org.folio.search.service.consortium.FeatureConfigServiceDecorator;
 import org.folio.search.service.setter.FieldProcessor;
 import org.folio.search.utils.JsonConverter;
 import org.folio.search.utils.SearchUtils;
@@ -24,7 +25,7 @@ import org.springframework.stereotype.Component;
 public class SearchFieldsProcessor {
 
   private final JsonConverter jsonConverter;
-  private final FeatureConfigService featureConfigService;
+  private final FeatureConfigServiceDecorator featureConfigService;
   private final Map<String, FieldProcessor<?, ?>> fieldProcessors;
 
   /**
@@ -34,6 +35,9 @@ public class SearchFieldsProcessor {
    * @return map with retrieved search fields
    */
   public Map<String, Object> getSearchFields(ConversionContext ctx) {
+    log.debug("getSearchFields:: by [resourceEvent: {}, languages: {}]",
+      ctx.getResourceEvent(), collectionToLogMsg(ctx.getLanguages()));
+
     var resourceDescription = ctx.getResourceDescription();
     var searchFields = resourceDescription.getSearchFields();
     if (MapUtils.isEmpty(searchFields)) {
@@ -45,9 +49,9 @@ public class SearchFieldsProcessor {
 
     var resultMap = new LinkedHashMap<String, Object>();
     searchFields.forEach((name, fieldDescriptor) -> {
-      var value = fieldDescriptor.isRawProcessing() ? data : resourceObject;
+      var resource = fieldDescriptor.isRawProcessing() ? data : resourceObject;
       if (isSearchProcessorEnabled(fieldDescriptor)) {
-        resultMap.putAll(getSearchFieldValue(value, ctx.getLanguages(), name, fieldDescriptor));
+        resultMap.putAll(getSearchFieldValue(resource, ctx.getLanguages(), name, fieldDescriptor));
       } else {
         log.debug("Search processor has been ignored [processor: {}]", fieldDescriptor.getProcessor());
       }

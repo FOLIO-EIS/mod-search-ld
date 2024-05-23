@@ -3,7 +3,7 @@ package org.folio.search.service.setter.bibframe;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Optional;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.Test;
 
 @UnitTest

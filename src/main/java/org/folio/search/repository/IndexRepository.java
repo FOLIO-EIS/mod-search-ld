@@ -11,11 +11,11 @@ import static org.opensearch.common.xcontent.XContentType.JSON;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
 import org.folio.search.domain.dto.FolioCreateIndexResponse;
 import org.folio.search.domain.dto.FolioIndexOperationResponse;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.client.indices.CreateIndexRequest;
@@ -28,7 +28,6 @@ import org.springframework.stereotype.Repository;
 /**
  * Search resource repository with set of operation to create/modify/update index settings and mappings.
  */
-@Log4j2
 @Repository
 @RequiredArgsConstructor
 public class IndexRepository {
@@ -54,8 +53,30 @@ public class IndexRepository {
       index, "createIndexApi");
 
     return createIndexResponse.isAcknowledged()
-           ? getSuccessFolioCreateIndexResponse(List.of(index))
-           : getErrorFolioCreateIndexResponse(List.of(index));
+      ? getSuccessFolioCreateIndexResponse(List.of(index))
+      : getErrorFolioCreateIndexResponse(List.of(index));
+
+  }
+
+  /**
+   * Update index settings {@link UpdateSettingsRequest}.
+   *
+   * @param index    index name as {@link String} object
+   * @param settings settings JSON {@link String} object
+   * @return {@link FolioCreateIndexResponse} object
+   */
+  public FolioIndexOperationResponse updateIndexSettings(String index, String settings) {
+    var updateSettingsRequest = new UpdateSettingsRequest(index)
+      .settings(settings, JSON);
+
+    var updateIndexSettingsResponse = performExceptionalOperation(
+      () -> elasticsearchClient.indices().putSettings(updateSettingsRequest, RequestOptions.DEFAULT),
+      index, "putIndexSettingsApi");
+
+    return updateIndexSettingsResponse.isAcknowledged()
+      ? getSuccessIndexOperationResponse()
+      : getErrorIndexOperationResponse("Failed to put settings");
+
   }
 
   /**
@@ -72,8 +93,8 @@ public class IndexRepository {
       index, "putMappingsApi");
 
     return putMappingsResponse.isAcknowledged()
-           ? getSuccessIndexOperationResponse()
-           : getErrorIndexOperationResponse("Failed to put mappings");
+      ? getSuccessIndexOperationResponse()
+      : getErrorIndexOperationResponse("Failed to put mappings");
   }
 
   /**
@@ -84,7 +105,6 @@ public class IndexRepository {
    */
   @Cacheable(value = ES_INDICES_CACHE, key = "#index", unless = "#result == false")
   public boolean indexExists(String index) {
-    log.info("Checking that index exists [index: {}]", index);
     var request = new GetIndexRequest(index);
     return performExceptionalOperation(
       () -> elasticsearchClient.indices().exists(request, RequestOptions.DEFAULT),

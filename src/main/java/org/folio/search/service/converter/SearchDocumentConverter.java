@@ -1,6 +1,7 @@
 package org.folio.search.service.converter;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
 import static org.folio.search.model.types.IndexActionType.DELETE;
 import static org.folio.search.model.types.IndexActionType.INDEX;
 import static org.folio.search.utils.CollectionUtils.mergeSafely;
@@ -26,11 +27,11 @@ import org.folio.search.model.metadata.FieldDescription;
 import org.folio.search.model.metadata.ObjectFieldDescription;
 import org.folio.search.model.metadata.PlainFieldDescription;
 import org.folio.search.model.types.IndexingDataFormat;
-import org.folio.search.service.LanguageConfigService;
+import org.folio.search.service.consortium.LanguageConfigServiceDecorator;
 import org.folio.search.service.metadata.ResourceDescriptionService;
 import org.folio.search.utils.SearchConverterUtils;
 import org.folio.search.utils.SearchUtils;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.springframework.stereotype.Component;
 
 @Log4j2
@@ -38,13 +39,13 @@ import org.springframework.stereotype.Component;
 public class SearchDocumentConverter {
 
   private final SearchFieldsProcessor searchFieldsProcessor;
-  private final LanguageConfigService languageConfigService;
+  private final LanguageConfigServiceDecorator languageConfigService;
   private final ResourceDescriptionService descriptionService;
   private final IndexingDataFormat indexingDataFormat;
   private final Function<Map<String, Object>, BytesReference> searchDocumentBodyConverter;
 
   public SearchDocumentConverter(SearchFieldsProcessor searchFieldsProcessor,
-                                 LanguageConfigService languageConfigService,
+                                 LanguageConfigServiceDecorator languageConfigService,
                                  ResourceDescriptionService descriptionService,
                                  SearchConfigurationProperties searchConfigurationProperties,
                                  Function<Map<String, Object>, BytesReference> searchDocumentBodyConverter) {
@@ -62,13 +63,16 @@ public class SearchDocumentConverter {
    * @return list with elasticsearch documents.
    */
   public Optional<SearchDocumentBody> convert(ResourceEvent resourceEvent) {
+    log.debug("convert:: by [resourceEvent: {}]", resourceEvent);
+
     if (resourceEvent.getType() == ResourceEventType.DELETE) {
+      log.debug("convert:: resourceEvent.Type == DELETE");
       return Optional.of(SearchDocumentBody.of(null, indexingDataFormat, resourceEvent, DELETE));
     }
 
     return canConvertEvent(resourceEvent)
-           ? Optional.of(convert(buildConversionContext(resourceEvent)))
-           : Optional.empty();
+      ? Optional.of(convert(buildConversionContext(resourceEvent)))
+      : Optional.empty();
   }
 
   private SearchDocumentBody convert(ConversionContext context) {
@@ -99,7 +103,7 @@ public class SearchDocumentConverter {
     var resourceDescription = descriptionService.get(event.getResourceName());
     var resourceData = getNewAsMap(event);
     var resourceLanguages = getResourceLanguages(resourceDescription.getLanguageSourcePaths(), resourceData);
-    return ConversionContext.of(event, resourceDescription, resourceLanguages);
+    return ConversionContext.of(event, resourceDescription, resourceLanguages, event.getTenant());
   }
 
   private static Map<String, Object> convertMapUsingResourceFields(
@@ -130,6 +134,10 @@ public class SearchDocumentConverter {
     var desc = (PlainFieldDescription) fieldEntry.getValue();
     if (desc.isNotIndexed()) {
       return emptyMap();
+    }
+
+    if (desc.isTenantField()) {
+      return singletonMap(fieldName, ctx.getTenantId());
     }
 
     var plainFieldValue = MapUtils.getObject(fieldData, fieldName, desc.getDefaultValue());

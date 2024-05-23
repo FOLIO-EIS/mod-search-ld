@@ -12,17 +12,20 @@ import static org.folio.search.utils.KafkaUtils.getTenantTopicName;
 import static org.folio.search.utils.SearchConverterUtils.getNewAsMap;
 import static org.folio.search.utils.SearchConverterUtils.getOldAsMap;
 import static org.folio.search.utils.SearchConverterUtils.getResourceEventId;
+import static org.folio.search.utils.SearchConverterUtils.getResourceSource;
 import static org.folio.search.utils.SearchUtils.INSTANCE_CONTRIBUTORS_FIELD_NAME;
 import static org.folio.search.utils.SearchUtils.INSTANCE_SUBJECT_RESOURCE;
+import static org.folio.search.utils.SearchUtils.SOURCE_CONSORTIUM_PREFIX;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Stream;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
-import one.util.streamex.StreamEx;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.folio.search.domain.dto.Contributor;
@@ -30,11 +33,13 @@ import org.folio.search.domain.dto.ResourceEvent;
 import org.folio.search.domain.dto.ResourceEventType;
 import org.folio.search.model.event.ContributorResourceEvent;
 import org.folio.search.model.event.SubjectResourceEvent;
+import org.folio.search.service.consortium.ConsortiumTenantService;
 import org.folio.search.utils.CollectionUtils;
 import org.folio.search.utils.JsonConverter;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+@Log4j2
 @Component
 @RequiredArgsConstructor
 public class KafkaMessageProducer {
@@ -46,61 +51,78 @@ public class KafkaMessageProducer {
   private static final TypeReference<List<SubjectResourceEvent>> TYPE_REFERENCE_SUBJECT = new TypeReference<>() { };
   private final JsonConverter jsonConverter;
   private final KafkaTemplate<String, ResourceEvent> kafkaTemplate;
+  private final ConsortiumTenantService consortiumTenantService;
 
   public void prepareAndSendContributorEvents(List<ResourceEvent> resourceEvents) {
-    if (isNotEmpty(resourceEvents)) {
-      resourceEvents.stream()
-        .filter(Objects::nonNull)
-        .map(this::getContributorEvents)
-        .flatMap(List::stream)
-        .forEach(kafkaTemplate::send);
-    }
+    prepareAndSendEvents(resourceEvents, this::getContributorEvents);
   }
 
   public void prepareAndSendSubjectEvents(List<ResourceEvent> resourceEvents) {
+    prepareAndSendEvents(resourceEvents, this::getSubjectsEvents);
+  }
+
+  private void prepareAndSendEvents(List<ResourceEvent> resourceEvents,
+                                    Function<ResourceEvent, List<ProducerRecord<String, ResourceEvent>>> toEventsFunc) {
     if (isNotEmpty(resourceEvents)) {
       resourceEvents.stream()
         .filter(Objects::nonNull)
-        .map(this::getSubjectsEvents)
+        .filter(instance -> !StringUtils.startsWith(getResourceSource(instance), SOURCE_CONSORTIUM_PREFIX))
+        .map(toEventsFunc)
         .flatMap(List::stream)
         .forEach(kafkaTemplate::send);
     }
   }
 
   private List<ProducerRecord<String, ResourceEvent>> getSubjectsEvents(ResourceEvent event) {
-    var oldSubjects = extractSubjects(getOldAsMap(event));
-    var newSubjects = extractSubjects(getNewAsMap(event));
     var tenantId = event.getTenant();
-    var subjectsCreate = getSubjectsAsStreamSubtracting(newSubjects, oldSubjects, tenantId, CREATE);
-    var subjectsDelete = getSubjectsAsStreamSubtracting(oldSubjects, newSubjects, tenantId, DELETE);
-    var topicName = getTenantTopicName(INSTANCE_SUBJECTS_TOPIC_NAME, tenantId);
-    return StreamEx.of(subjectsCreate)
-      .append(subjectsDelete)
-      .map(resourceEvent -> new ProducerRecord<>(topicName, resourceEvent.getId(), resourceEvent))
-      .toList();
+    var oldSubjects = extractSubjects(getOldAsMap(event), tenantId);
+    var newSubjects = extractSubjects(getNewAsMap(event), tenantId);
+    List<ProducerRecord<String, ResourceEvent>> producerRecords = new ArrayList<>();
+    producerRecords.addAll(prepareSubjectsEvents(newSubjects, oldSubjects, tenantId, CREATE));
+    producerRecords.addAll(prepareSubjectsEvents(oldSubjects, newSubjects, tenantId, DELETE));
+    log.trace("Prepared subject events: [{}]", producerRecords);
+    log.debug("Prepared subject events: [total: {}]", producerRecords.size());
+    return producerRecords;
   }
 
-  private List<SubjectResourceEvent> extractSubjects(Map<String, Object> objectMap) {
-    var contributorsObject = getObject(objectMap, SUBJECTS_FIELD, emptyList());
-    var subjectResourceEvents = jsonConverter.convert(contributorsObject, TYPE_REFERENCE_SUBJECT);
+  private List<SubjectResourceEvent> extractSubjects(Map<String, Object> objectMap, String tenantId) {
+    var subjectsObject = getObject(objectMap, SUBJECTS_FIELD, emptyList());
+    var subjectResourceEvents = jsonConverter.convert(subjectsObject, TYPE_REFERENCE_SUBJECT);
     subjectResourceEvents.forEach(
       subjectResourceEvent -> {
         subjectResourceEvent.setInstanceId(getResourceEventId(objectMap));
         subjectResourceEvent.setValue(StringUtils.trim(subjectResourceEvent.getValue()));
+        subjectResourceEvent.setShared(isSharedResource(objectMap, tenantId));
       });
+    subjectResourceEvents.removeIf(subjectResourceEvent -> StringUtils.isBlank(subjectResourceEvent.getInstanceId()));
     return subjectResourceEvents;
   }
 
-  private Stream<ResourceEvent> getSubjectsAsStreamSubtracting(List<SubjectResourceEvent> subjects,
-                                                               List<SubjectResourceEvent> subjectsToRemove,
-                                                               String tenantId, ResourceEventType eventType) {
+  private boolean isSharedResource(Map<String, Object> objectMap, String tenantId) {
+    var centralTenant = consortiumTenantService.getCentralTenant(tenantId);
+    if (centralTenant.isEmpty()) {
+      return false;
+    }
+
+    var resourceSource = getResourceSource(objectMap);
+    return StringUtils.startsWith(resourceSource, SOURCE_CONSORTIUM_PREFIX)
+      || centralTenant.get().equals(tenantId);
+  }
+
+  private List<ProducerRecord<String, ResourceEvent>> prepareSubjectsEvents(List<SubjectResourceEvent> subjects,
+                                                                            List<SubjectResourceEvent> subjectsToRemove,
+                                                                            String tenantId,
+                                                                            ResourceEventType eventType) {
+    var topicName = getTenantTopicName(INSTANCE_SUBJECTS_TOPIC_NAME, tenantId);
     return CollectionUtils.subtract(subjects, subjectsToRemove).stream()
       .filter(subject -> StringUtils.isNotBlank(subject.getValue()))
-      .map(subject -> convertToSubjectEvent(subject, tenantId, eventType));
+      .map(subject -> convertToSubjectEvent(subject, tenantId, eventType))
+      .map(resourceEvent -> new ProducerRecord<>(topicName, resourceEvent.getId(), resourceEvent))
+      .toList();
   }
 
   private ResourceEvent convertToSubjectEvent(SubjectResourceEvent subject, String tenantId, ResourceEventType type) {
-    var stringForId = toRootLowerCase(tenantId + "|" + subject.getValue() + "|" + subject.getAuthorityId());
+    var stringForId = toRootLowerCase(subject.getValue() + "|" + subject.getAuthorityId());
     var id = sha1Hex(stringForId); //NOSONAR
     subject.setId(id);
     var resourceEvent = new ResourceEvent().type(type).tenant(tenantId).id(id)
@@ -112,25 +134,30 @@ public class KafkaMessageProducer {
   private List<ProducerRecord<String, ResourceEvent>> getContributorEvents(ResourceEvent event) {
     var tenantId = event.getTenant();
     var instanceId = getResourceEventId(event);
+    if (StringUtils.isBlank(instanceId)) {
+      return emptyList();
+    }
     var oldContributors = getContributorEvents(getOldAsMap(event), instanceId, tenantId);
     var newContributors = getContributorEvents(getNewAsMap(event), instanceId, tenantId);
 
-    return Stream.of(
-        prepareContributorEvents(subtract(newContributors, oldContributors), CREATE, tenantId),
-        prepareContributorEvents(subtract(oldContributors, newContributors), DELETE, tenantId))
-      .flatMap(List::stream)
-      .toList();
+    List<ProducerRecord<String, ResourceEvent>> producerRecords = new ArrayList<>();
+    producerRecords.addAll(prepareContributorEvents(subtract(newContributors, oldContributors), CREATE, tenantId));
+    producerRecords.addAll(prepareContributorEvents(subtract(oldContributors, newContributors), DELETE, tenantId));
+    log.trace("Prepared contributors events: [{}]", producerRecords);
+    log.debug("Prepared contributors events: [total: {}]", producerRecords.size());
+    return producerRecords;
   }
 
   private List<ContributorResourceEvent> getContributorEvents(Map<String, Object> objectMap, String instanceId,
                                                               String tenantId) {
+    var shared = isSharedResource(objectMap, tenantId);
     return extractContributors(objectMap).stream()
-      .map(contributor -> toContributorEvent(contributor, instanceId, tenantId))
+      .map(contributor -> toContributorEvent(contributor, instanceId, shared))
       .toList();
   }
 
-  private ContributorResourceEvent toContributorEvent(Contributor contributor, String instanceId, String tenantId) {
-    var id = getContributorId(tenantId, contributor);
+  private ContributorResourceEvent toContributorEvent(Contributor contributor, String instanceId, boolean shared) {
+    var id = getContributorId(contributor);
     return ContributorResourceEvent.builder()
       .id(id)
       .instanceId(instanceId)
@@ -138,6 +165,7 @@ public class KafkaMessageProducer {
       .nameTypeId(contributor.getContributorNameTypeId())
       .typeId(contributor.getContributorTypeId())
       .authorityId(contributor.getAuthorityId())
+      .shared(shared)
       .build();
   }
 
@@ -151,6 +179,7 @@ public class KafkaMessageProducer {
                                                                                String tenantId) {
     var topicName = getTenantTopicName(INSTANCE_CONTRIBUTOR_TOPIC_NAME, tenantId);
     return events.stream()
+      .filter(contributorResourceEvent -> StringUtils.isNotBlank(contributorResourceEvent.getInstanceId()))
       .map(contributor -> prepareResourceEvent(contributor, type, tenantId))
       .map(resourceEvent -> new ProducerRecord<>(topicName, resourceEvent.getId(), resourceEvent))
       .toList();
@@ -162,9 +191,8 @@ public class KafkaMessageProducer {
     return type == CREATE ? eventBody._new(contributorEvent) : eventBody.old(contributorEvent);
   }
 
-  private String getContributorId(String tenantId, Contributor contributor) {
-    return sha1Hex(tenantId //NOSONAR
-      + "|" + contributor.getContributorNameTypeId()
+  private String getContributorId(Contributor contributor) {
+    return sha1Hex(contributor.getContributorNameTypeId() //NOSONAR
       + "|" + toRootLowerCase(contributor.getName())
       + "|" + contributor.getAuthorityId());
   }

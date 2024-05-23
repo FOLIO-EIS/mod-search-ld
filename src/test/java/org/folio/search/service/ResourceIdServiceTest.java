@@ -23,14 +23,19 @@ import java.util.List;
 import java.util.function.Consumer;
 import org.folio.search.configuration.properties.StreamIdsProperties;
 import org.folio.search.cql.CqlSearchQueryConverter;
-import org.folio.search.domain.dto.ResourceId;
-import org.folio.search.domain.dto.ResourceIds;
 import org.folio.search.exception.SearchServiceException;
+import org.folio.search.model.ResourceId;
+import org.folio.search.model.ResourceIds;
 import org.folio.search.model.service.CqlResourceIdsRequest;
+import org.folio.search.model.streamids.ResourceIdsJobEntity;
+import org.folio.search.model.types.StreamJobStatus;
+import org.folio.search.repository.ResourceIdsJobRepository;
 import org.folio.search.repository.SearchRepository;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -54,12 +59,14 @@ class ResourceIdServiceTest {
   private CqlSearchQueryConverter queryConverter;
   @Mock
   private StreamIdsProperties properties;
+  @Mock
+  private ResourceIdsJobRepository jobRepository;
   @Spy
   private final ObjectMapper objectMapper = OBJECT_MAPPER;
 
   @Test
   void streamResourceIds() throws IOException {
-    when(queryConverter.convert(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
+    when(queryConverter.convertForConsortia(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
     when(properties.getScrollQuerySize()).thenReturn(QUERY_SIZE);
     mockSearchRepositoryCall(List.of(RANDOM_ID));
 
@@ -73,7 +80,7 @@ class ResourceIdServiceTest {
 
   @Test
   void streamResourceIdsAsText() {
-    when(queryConverter.convert(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
+    when(queryConverter.convertForConsortia(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
     when(properties.getScrollQuerySize()).thenReturn(QUERY_SIZE);
     mockSearchRepositoryCall(List.of(RANDOM_ID));
 
@@ -83,6 +90,19 @@ class ResourceIdServiceTest {
 
     var actual = outputStream.toString();
     assertThat(actual).isEqualTo(RANDOM_ID + '\n');
+  }
+
+  @EnumSource(value = StreamJobStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "COMPLETED")
+  @ParameterizedTest
+  void cantStreamNotCompletedJob(StreamJobStatus streamJobStatus) {
+    var resourceIdsJob = new ResourceIdsJobEntity();
+    resourceIdsJob.setQuery("query");
+    resourceIdsJob.setStatus(streamJobStatus);
+    when(jobRepository.getReferenceById(any())).thenReturn(resourceIdsJob);
+    var outputStream = new ByteArrayOutputStream();
+
+    assertThatThrownBy(() -> resourceIdService.streamIdsFromDatabaseAsJson(randomId(), outputStream))
+      .hasMessage("Completed async job with query=[query] was not found.");
   }
 
   @Test
@@ -105,7 +125,7 @@ class ResourceIdServiceTest {
     mockSearchRepositoryCall(List.of(RANDOM_ID));
     when(properties.getScrollQuerySize()).thenReturn(QUERY_SIZE);
     when(objectMapper.createGenerator(outputStream)).thenReturn(generator);
-    when(queryConverter.convert(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
+    when(queryConverter.convertForConsortia(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
     doThrow(new IOException("Failed to write string field")).when(generator).writeStringField("id", RANDOM_ID);
 
     var request = request();
@@ -122,7 +142,7 @@ class ResourceIdServiceTest {
     mockSearchRepositoryCall(List.of(RANDOM_ID));
     when(properties.getScrollQuerySize()).thenReturn(QUERY_SIZE);
     when(resourceIdService.createOutputStreamWriter(outputStream)).thenReturn(writer);
-    when(queryConverter.convert(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
+    when(queryConverter.convertForConsortia(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
     doThrow(new IOException("Failed to write string field")).when(writer).write(RANDOM_ID + '\n');
 
     var request = request();
@@ -134,7 +154,7 @@ class ResourceIdServiceTest {
   @Test
   void streamResourceIds_positive_emptyCollectionProvided() throws IOException {
     mockSearchRepositoryCall(emptyList());
-    when(queryConverter.convert(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
+    when(queryConverter.convertForConsortia(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
     when(properties.getScrollQuerySize()).thenReturn(QUERY_SIZE);
 
     var outputStream = new ByteArrayOutputStream();
@@ -147,7 +167,7 @@ class ResourceIdServiceTest {
   @Test
   void streamResourceIdsInTextTextType_positive_emptyCollectionProvided() {
     mockSearchRepositoryCall(emptyList());
-    when(queryConverter.convert(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
+    when(queryConverter.convertForConsortia(TEST_QUERY, RESOURCE_NAME)).thenReturn(searchSource());
     when(properties.getScrollQuerySize()).thenReturn(QUERY_SIZE);
 
     var outputStream = new ByteArrayOutputStream();

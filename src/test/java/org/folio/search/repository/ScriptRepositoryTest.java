@@ -11,7 +11,7 @@ import static org.opensearch.client.RequestOptions.DEFAULT;
 
 import java.io.IOException;
 import org.folio.search.exception.SearchOperationException;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,7 +22,7 @@ import org.opensearch.action.admin.cluster.storedscripts.GetStoredScriptResponse
 import org.opensearch.action.admin.cluster.storedscripts.PutStoredScriptRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.RestHighLevelClient;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 
 @UnitTest
 @ExtendWith(MockitoExtension.class)

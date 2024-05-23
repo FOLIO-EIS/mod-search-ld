@@ -7,9 +7,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.util.Sets.newLinkedHashSet;
 import static org.folio.search.model.metadata.PlainFieldDescription.STANDARD_FIELD_TYPE;
 import static org.folio.search.utils.CollectionUtils.mergeSafelyToSet;
+import static org.folio.search.utils.SearchUtils.INSTANCE_RESOURCE;
 import static org.folio.search.utils.SearchUtils.getIndexName;
 import static org.folio.search.utils.SearchUtils.getResourceName;
 import static org.folio.search.utils.SearchUtils.getTotalPages;
+import static org.folio.search.utils.SearchUtils.normalizeLccn;
 import static org.folio.search.utils.SearchUtils.performExceptionalOperation;
 import static org.folio.search.utils.SearchUtils.updateMultilangPlainFieldKey;
 import static org.folio.search.utils.TestConstants.INDEX_NAME;
@@ -34,7 +36,7 @@ import org.folio.search.domain.dto.Instance;
 import org.folio.search.exception.SearchOperationException;
 import org.folio.search.model.index.SearchDocumentBody;
 import org.folio.search.model.service.MultilangValue;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,13 +72,13 @@ class SearchUtilsTest {
 
   @Test
   void getIndexName_resourceNameAndTenantId_positive() {
-    var actual = getIndexName(RESOURCE_NAME, TENANT_ID);
+    var actual = getIndexName(INSTANCE_RESOURCE, TENANT_ID);
     assertThat(actual).isEqualTo(INDEX_NAME);
   }
 
   @Test
   void getIndexName_positive_resourceEvent() {
-    var resourceEvent = resourceEvent(RESOURCE_NAME, emptyMap());
+    var resourceEvent = resourceEvent(INSTANCE_RESOURCE, emptyMap());
     var actual = getIndexName(resourceEvent);
     assertThat(actual).isEqualTo(INDEX_NAME);
   }
@@ -87,6 +89,14 @@ class SearchUtilsTest {
   void getTotalPages_parameterized(long total, long expected) {
     var totalPages = getTotalPages(total, 20);
     assertThat(totalPages).isEqualTo(expected);
+  }
+
+  @DisplayName("LCCN value normalization")
+  @CsvSource({"n 1234,n1234", "  N  1234 ,n1234", "*1234,*1234", "1234*,1234*"})
+  @ParameterizedTest(name = "[{index}] value={0}, expected={1}")
+  void getLccnNormalized_parameterized(String value, String expected) {
+    var normalized = normalizeLccn(value);
+    assertThat(normalized).isEqualTo(expected);
   }
 
   @CsvSource({
@@ -122,11 +132,6 @@ class SearchUtilsTest {
     assertThat(updateMultilangPlainFieldKey(given)).isEqualTo(expected);
   }
 
-  @Test
-  void getEffectiveCallNumber_positive() {
-    var actual = SearchUtils.getEffectiveCallNumber("prefix", "cn", null);
-    assertThat(actual).isEqualTo("prefix cn");
-  }
 
   @Test
   void updatePathForFulltextField_positive_multilangField() {
@@ -186,18 +191,6 @@ class SearchUtilsTest {
   }
 
   @Test
-  void getNormalizedCallNumber_positive() {
-    var actual = SearchUtils.getNormalizedCallNumber(null, "94 NF 14/1:3792-3835", null);
-    assertThat(actual).isEqualTo("94nf14137923835");
-  }
-
-  @Test
-  void getNormalizedCallNumber_with_suffix_prefix_positive() {
-    var actual = SearchUtils.getNormalizedCallNumber("prefix", "94 NF 14/1:3792-3835", "suffix");
-    assertThat(actual).isEqualTo("prefix94nf14137923835suffix");
-  }
-
-  @Test
   void getMultilangValue_positive_stringValue() {
     var value = "fieldValue";
     var actual = SearchUtils.getMultilangValue("key", value, List.of("eng"));
@@ -253,6 +246,22 @@ class SearchUtilsTest {
   void getNumberOfRequests_parameterized(Map<String, List<SearchDocumentBody>> requests, int expected) {
     var actual = SearchUtils.getNumberOfRequests(requests);
     assertThat(actual).isEqualTo(expected);
+  }
+
+  @ParameterizedTest
+  @MethodSource("provideStringsForAlphanumericNormalization")
+  void testNormalizeToAlphanumeric(String input, String expected) {
+    assertThat(SearchUtils.normalizeToAlphaNumeric(input)).isEqualTo(expected);
+  }
+
+  private static Stream<Arguments> provideStringsForAlphanumericNormalization() {
+    return Stream.of(
+      Arguments.of(null, null),
+      Arguments.of("   ", null),
+      Arguments.of("abc123", "abc123"),
+      Arguments.of(" abc#!@ 123 ", "abc123"),
+      Arguments.of("#!@", null)
+    );
   }
 
   private static Stream<Arguments> isEmptyStringDataSource() {

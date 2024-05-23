@@ -10,7 +10,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.SerializationException;
-import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.springframework.stereotype.Component;
 
 /**
@@ -67,6 +67,16 @@ public class JsonConverter {
       log.warn(DESERIALIZATION_ERROR_MSG_TEMPLATE, value, e);
       throw deserializationException(value, e);
     }
+  }
+
+  /**
+   * Converts {@link String} value to the {@link Map} .
+   *
+   * @param value object value to convert
+   * @return converted value
+   */
+  public Map<String, Object> fromJsonToMap(String value) {
+    return fromJson(value, MAP_TYPE_REFERENCE);
   }
 
   /**
@@ -219,11 +229,11 @@ public class JsonConverter {
   }
 
   /**
-   * Converts object value to the given type, specified in {@link TypeReference} object.
+   * Converts object value to the given typeId, specified in {@link TypeReference} object.
    *
    * @param value object value to convert
-   * @param type  target type as {@link TypeReference} object
-   * @param <T>   generic type for target class
+   * @param type  target typeId as {@link TypeReference} object
+   * @param <T>   generic typeId for target class
    * @return converted value
    */
   public <T> T convert(Object value, TypeReference<T> type) {
@@ -232,6 +242,17 @@ public class JsonConverter {
     }
     return objectMapper.convertValue(value, type);
   }
+
+  /**
+   * Converts object value to the map.
+   *
+   * @param value object value to convert
+   * @return converted map
+   */
+  public Map<String, Object> convertToMap(Object value) {
+    return convert(value, MAP_TYPE_REFERENCE);
+  }
+
 
   private static RuntimeException deserializationException(String value, Throwable e) {
     log.warn(DESERIALIZATION_ERROR_MSG_TEMPLATE, value, e);

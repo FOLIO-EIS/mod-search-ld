@@ -6,7 +6,7 @@ import org.folio.search.model.BrowseResult;
 import org.folio.search.model.SearchResult;
 import org.folio.search.model.service.BrowseContext;
 import org.folio.search.model.service.BrowseRequest;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.Test;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
@@ -21,7 +21,7 @@ class AbstractBrowseServiceBySearchAfterTest {
   }
 
   @SuppressWarnings("rawtypes")
-  private static class TestBrowseService extends AbstractBrowseServiceBySearchAfter {
+  private static final class TestBrowseService extends AbstractBrowseServiceBySearchAfter {
 
     @Override
     protected SearchSourceBuilder getAnchorSearchQuery(BrowseRequest r, BrowseContext c) {
@@ -39,7 +39,7 @@ class AbstractBrowseServiceBySearchAfterTest {
     }
 
     @Override
-    protected BrowseResult mapToBrowseResult(SearchResult searchResult, boolean isAnchor) {
+    protected BrowseResult mapToBrowseResult(BrowseContext context, SearchResult searchResult, boolean isAnchor) {
       return null;
     }
 

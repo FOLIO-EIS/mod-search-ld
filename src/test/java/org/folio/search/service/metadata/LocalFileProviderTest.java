@@ -18,7 +18,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.io.IOUtils;
 import org.folio.search.utils.JsonConverter;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.spring.testing.type.UnitTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -83,7 +83,7 @@ class LocalFileProviderTest {
   @Data
   @NoArgsConstructor
   @AllArgsConstructor(staticName = "of")
-  private static class TestType {
+  private static final class TestType {
 
     private String key;
   }

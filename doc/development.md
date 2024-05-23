@@ -44,7 +44,7 @@ the [full-text queries](https://www.elastic.co/guide/en/elasticsearch/reference/
 |:--------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | searchTypes         | List of search types that are supported for the current field. Allowed values: `facet`, `filter`, `sort`                                                                                                                                                                                                                                                                                                                                                   |
 | searchAliases       | List of aliases that can be used as a field name in the CQL search query. It can be used to combine several fields together during the search. For example, a query `keyword all title` combines for instance record following fields - `title`, `alternativeTitles.alternativeTitle`,  `indexTitle`, `identifiers.value`, `contributors.name`<br/>Other way of using it - is to rename field keeping the backward compatibility without required reindex. |
-| index               | Reference to the Elasticsearch mappings that are specified in [index-field-types](src/main/resources/elasticsearch/index-field-types.json)                                                                                                                                                                                                                                                                                                                 |
+| index               | Reference to the Elasticsearch mappings that are specified in [index-field-types](../src/main/resources/elasticsearch/index-field-types.json)                                                                                                                                                                                                                                                                                                              |
 | showInResponse      | Marks field to be returned during the search operation. `mod-search` adds to the Elasticsearch query all marked field paths. See also: [Source filtering](https://www.elastic.co/guide/en/elasticsearch/reference/master/search-fields.html#source-filtering)                                                                                                                                                                                              |
 | searchTermProcessor | Search term processor, which pre-processes incoming value from CQL query for the search request.                                                                                                                                                                                                                                                                                                                                                           |
 | mappings            | Elasticsearch fields mappings. It can contain new field mapping or can enrich referenced mappings, that comes from `index-field-types`                                                                                                                                                                                                                                                                                                                     |
@@ -254,24 +254,26 @@ The module uses [Testcontainers](https://www.testcontainers.org/) to run Elastic
 in embedded mode. It is required to have Docker installed and available on the host where the tests are executed.
 
 ### Local environment testing
-Run `docker-compose up` in a project root folder.
+Navigate to the docker folder in the project and run `docker-compose up`.
 This will build local mod-search image and bring it up along with all necessary infrastructure:
  - elasticsearch along with dashboards (kibana analogue from opensearch)
  - kafka along with zookeeper
  - postgres
  - wiremock server for mocking external api calls (for example authorization)
- - 
-Also you should invoke
+
+Then, you should invoke
 ```shell
 curl --location --request POST 'http://localhost:8081/_/tenant' \
 --header 'Content-Type: application/json' \
---header 'x-okapi-tenant: test' \
+--header 'x-okapi-tenant: test_tenant' \
 --header 'x-okapi-url: http://api-mock:8080' \
 --data-raw '{
+  "module_to": "mod-search-$version$",
   "purge": "false"
 }
 ```
 to post some tenant in order to bring up kafka listeners and get indices created.
+You can check which tenants enabled by wiremock in the `src/test/resources/mappings/user-tenants.json`
 
 To rebuild mod-search image you should:
  - bring down existing containers by running `docker-compose down`
@@ -283,3 +285,43 @@ Hosts/ports of containers to access functionality:
  - `localhost` - host, `5010` - port for remote JVM debug
  - `http://localhost:8081` - for calling mod-search REST api. Note that header `x-okapi-url: http://api-mock:8080` should be added to request for apis that take okapi url from headers
  - `localhost:29092` - for kafka interaction. If you are sending messages to kafka from java application with `spring-kafka` then this host shoulb be added to `spring.kafka.bootstrap-servers` property of `application.yml`
+
+### Consortium support for Local environment testing
+Consortium feature is defined automatically at runtime by calling /user-tenants endpoint.
+Consortium feature on module enable is defined by 'centralTenantId' tenant parameter.
+
+Invoke the following
+```shell
+curl --location --request POST 'http://localhost:8081/_/tenant' \
+--header 'Content-Type: application/json' \
+--header 'x-okapi-tenant: consortium' \
+--header 'x-okapi-url: http://api-mock:8080' \
+--data-raw '{
+  "module_to": "mod-search-$version$",
+  "parameters": [
+    {
+      "key": "centralTenantId",
+      "value": "consortium"
+    }
+  ]
+}
+```
+
+Then execute the following to enable `member tenant`
+```shell
+curl --location --request POST 'http://localhost:8081/_/tenant' \
+--header 'Content-Type: application/json' \
+--header 'x-okapi-tenant: member_tenant' \
+--header 'x-okapi-url: http://api-mock:8080' \
+--data-raw '{
+  "module_to": "mod-search-$version$",
+  "parameters": [
+    {
+      "key": "centralTenantId",
+      "value": "consortium"
+    }
+  ]
+}
+```
+Consider that `tenantParameters` like `loadReference` and `loadSample` won't work because `loadReferenceData`
+method is not implemented in the `SearchTenantService` yet.

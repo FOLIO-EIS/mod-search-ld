@@ -7,6 +7,7 @@ import static org.awaitility.Durations.TWO_MINUTES;
 import static org.folio.search.support.base.ApiEndpoints.authoritySearchPath;
 import static org.folio.search.support.base.ApiEndpoints.bibframeSearchPath;
 import static org.folio.search.support.base.ApiEndpoints.instanceSearchPath;
+import static org.folio.search.utils.SearchUtils.getIndexName;
 import static org.folio.search.utils.TestConstants.TENANT_ID;
 import static org.folio.search.utils.TestConstants.bibframeTopic;
 import static org.folio.search.utils.TestConstants.inventoryAuthorityTopic;
@@ -17,7 +18,11 @@ import static org.folio.search.utils.TestUtils.removeEnvProperty;
 import static org.folio.search.utils.TestUtils.resourceEvent;
 import static org.folio.search.utils.TestUtils.setEnvProperty;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.client.RequestOptions.DEFAULT;
+import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
+import static org.opensearch.search.builder.SearchSourceBuilder.searchSource;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -25,7 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -40,89 +45,52 @@ import org.folio.search.domain.dto.Instance;
 import org.folio.search.domain.dto.ResourceEvent;
 import org.folio.search.domain.dto.TenantConfiguredFeature;
 import org.folio.search.support.api.InventoryApi;
+import org.folio.search.support.api.InventoryViewResponseBuilder;
 import org.folio.search.support.extension.EnableElasticSearch;
-import org.folio.search.support.extension.EnableKafka;
-import org.folio.search.support.extension.EnableOkapi;
-import org.folio.search.support.extension.EnablePostgres;
-import org.folio.search.support.extension.impl.OkapiConfiguration;
 import org.folio.search.utils.TestUtils;
 import org.folio.spring.integration.XOkapiHeaders;
+import org.folio.spring.testing.extension.EnableKafka;
+import org.folio.spring.testing.extension.EnablePostgres;
+import org.folio.spring.testing.extension.impl.OkapiConfiguration;
+import org.folio.spring.testing.extension.impl.OkapiExtension;
 import org.folio.tenant.domain.dto.TenantAttributes;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpHeaders;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @Log4j2
-@EnableOkapi
 @EnableKafka
 @EnablePostgres
 @SpringBootTest
 @EnableElasticSearch
 @AutoConfigureMockMvc
+@DirtiesContext(classMode = AFTER_CLASS)
 public abstract class BaseIntegrationTest {
 
   protected static MockMvc mockMvc;
   protected static InventoryApi inventoryApi;
   protected static KafkaTemplate<String, ResourceEvent> kafkaTemplate;
   protected static OkapiConfiguration okapi;
+  protected static RestHighLevelClient elasticClient;
+  protected static CacheManager cacheManager;
 
-  @BeforeAll
-  static void setUpDefaultTenant(
-    @Autowired MockMvc mockMvc,
-    @Autowired KafkaTemplate<String, ResourceEvent> kafkaTemplate) {
-    setEnvProperty("folio-test");
-    BaseIntegrationTest.mockMvc = mockMvc;
-    BaseIntegrationTest.kafkaTemplate = kafkaTemplate;
-    BaseIntegrationTest.inventoryApi = new InventoryApi(kafkaTemplate);
-  }
-
-  @BeforeAll
-  static void cleanUpCaches(@Autowired CacheManager cacheManager) {
-    TestUtils.cleanUpCaches(cacheManager);
-  }
-
-  @AfterAll
-  static void afterAll() {
-    removeEnvProperty();
-  }
-
-  public static HttpHeaders defaultHeaders() {
-    return defaultHeaders(TENANT_ID);
-  }
-
-  public static HttpHeaders defaultHeaders(String tenant) {
-    var httpHeaders = new HttpHeaders();
-
-    httpHeaders.setContentType(APPLICATION_JSON);
-    httpHeaders.add(XOkapiHeaders.TENANT, tenant);
-    httpHeaders.add(XOkapiHeaders.URL, okapi.getOkapiUrl());
-
-    return httpHeaders;
-  }
-
-  public static WireMockServer getWireMock() {
-    return okapi.getWireMockServer();
-  }
-
-  @SneakyThrows
-  public static ResultActions attemptGet(String uri, Object... args) {
-    return attemptGet(uri, TENANT_ID, args);
-  }
-
-  @SneakyThrows
-  public static ResultActions attemptGet(String uri, String tenantId, Object... args) {
-    return mockMvc.perform(get(uri, args)
-      .headers(defaultHeaders(tenantId))
-      .accept("application/json;charset=UTF-8"));
-  }
+  @RegisterExtension
+  static OkapiExtension okapiExtension =
+    new OkapiExtension(new InventoryViewResponseBuilder());
 
   @SneakyThrows
   protected static ResultActions attemptPost(String uri, Object body) {
@@ -156,22 +124,6 @@ public abstract class BaseIntegrationTest {
   @SneakyThrows
   protected static ResultActions doPut(String uri, Object body) {
     return attemptPut(uri, body)
-      .andExpect(status().isOk());
-  }
-
-  @SneakyThrows
-  public static ResultActions doGet(String uri, Object... args) {
-    return mockMvc.perform(get(uri, args)
-        .headers(defaultHeaders())
-        .accept("application/json;charset=UTF-8"))
-      .andExpect(status().isOk());
-  }
-
-  @SneakyThrows
-  public static ResultActions doGet(MockHttpServletRequestBuilder request) {
-    return mockMvc.perform(request
-        .headers(defaultHeaders())
-        .accept("application/json;charset=UTF-8"))
       .andExpect(status().isOk());
   }
 
@@ -226,6 +178,24 @@ public abstract class BaseIntegrationTest {
   protected static ResultActions doSearch(
     String path, String tenantId, String query, Integer limit, Integer offset, Boolean expandAll) {
     return attemptSearch(path, tenantId, query, limit, offset, expandAll).andExpect(status().isOk());
+  }
+
+  protected static long countIndexDocument(String resource, String tenantId) throws IOException {
+    var searchRequest = new SearchRequest()
+      .source(searchSource().query(matchAllQuery()).trackTotalHits(true).from(0).size(0))
+      .indices(getIndexName(resource, tenantId));
+    var searchResponse = elasticClient.search(searchRequest, RequestOptions.DEFAULT);
+    return searchResponse.getHits().getTotalHits().value;
+  }
+
+  protected static long countDefaultIndexDocument(String resource) throws IOException {
+    return countIndexDocument(resource, TENANT_ID);
+  }
+
+  protected static void cleanUpIndex(String resource, String tenantId) throws IOException {
+    var request = new DeleteByQueryRequest(getIndexName(resource, tenantId));
+    request.setQuery(matchAllQuery());
+    elasticClient.deleteByQuery(request, DEFAULT);
   }
 
   @SneakyThrows
@@ -315,6 +285,7 @@ public abstract class BaseIntegrationTest {
       setUpTenant(tenant, authoritySearchPath(), postInitAction, asList(records), expectedCount,
         record -> kafkaTemplate.send(inventoryAuthorityTopic(tenant), resourceEvent(null, null, record)));
     }
+
     if (type.equals(Bibframe.class)) {
       setUpTenant(tenant, bibframeSearchPath(), postInitAction, asList(records), expectedCount,
         record -> kafkaTemplate.send(bibframeTopic(tenant), resourceEvent(null, null, record)));
@@ -322,17 +293,17 @@ public abstract class BaseIntegrationTest {
   }
 
   @SneakyThrows
-  private static <T> void setUpTenant(String tenant, String validationPath, Runnable postInitAction,
-                                      List<T> records, Integer expectedCount, Consumer<T> consumer) {
+  protected static <T> void setUpTenant(String tenant, String validationPath, Runnable postInitAction,
+                                        List<T> records, Integer expectedCount, Consumer<T> consumer) {
     enableTenant(tenant);
     postInitAction.run();
     saveRecords(tenant, validationPath, records, expectedCount, consumer);
   }
 
-  private static <T> void saveRecords(String tenant, String validationPath, List<T> records, Integer expectedCount,
-                                      Consumer<T> consumer) {
+  protected static <T> void saveRecords(String tenant, String validationPath, List<T> records, Integer expectedCount,
+                                        Consumer<T> consumer) {
     records.forEach(consumer);
-    if (records.size() > 0) {
+    if (!records.isEmpty()) {
       checkThatEventsFromKafkaAreIndexed(tenant, validationPath, expectedCount);
     }
   }
@@ -345,7 +316,7 @@ public abstract class BaseIntegrationTest {
   @SneakyThrows
   @SuppressWarnings("SameParameterValue")
   protected static void enableFeature(String tenantId, TenantConfiguredFeature feature) {
-    mockMvc.perform(post(ApiEndpoints.featureConfig())
+    mockMvc.perform(post(ApiEndpoints.featureConfigPath())
         .headers(defaultHeaders(tenantId))
         .content(asJsonString(new FeatureConfig().feature(feature).enabled(true))))
       .andExpect(status().isOk());
@@ -360,16 +331,18 @@ public abstract class BaseIntegrationTest {
   @SneakyThrows
   @SuppressWarnings("SameParameterValue")
   protected static void disableFeature(String tenantId, TenantConfiguredFeature feature) {
-    mockMvc.perform(put(ApiEndpoints.featureConfig(feature))
+    mockMvc.perform(delete(ApiEndpoints.featureConfigPath(feature))
         .headers(defaultHeaders(tenantId))
         .content(asJsonString(new FeatureConfig().feature(feature).enabled(false))))
-      .andExpect(status().isOk());
+      .andExpect(status().isNoContent());
   }
 
   @SneakyThrows
   protected static void enableTenant(String tenant) {
+    var tenantAttributes = new TenantAttributes().moduleTo("mod-search");
+
     mockMvc.perform(post("/_/tenant", randomId())
-        .content(asJsonString(new TenantAttributes().moduleTo("mod-search")))
+        .content(asJsonString(tenantAttributes))
         .headers(defaultHeaders(tenant))
         .contentType(APPLICATION_JSON))
       .andExpect(status().isNoContent());
@@ -395,6 +368,72 @@ public abstract class BaseIntegrationTest {
 
   protected static String prepareQuery(String queryTemplate, String value) {
     return value != null ? queryTemplate.replace("{value}", value) : queryTemplate;
+  }
+
+  @BeforeAll
+  static void setUpDefaultTenant(
+    @Autowired MockMvc mockMvc,
+    @Autowired KafkaTemplate<String, ResourceEvent> kafkaTemplate,
+    @Autowired RestHighLevelClient restHighLevelClient,
+    @Autowired CacheManager cacheManager) {
+    setEnvProperty("folio-test");
+    BaseIntegrationTest.mockMvc = mockMvc;
+    BaseIntegrationTest.kafkaTemplate = kafkaTemplate;
+    BaseIntegrationTest.inventoryApi = new InventoryApi(kafkaTemplate);
+    BaseIntegrationTest.elasticClient = restHighLevelClient;
+    BaseIntegrationTest.cacheManager = cacheManager;
+  }
+
+  @BeforeAll
+  static void cleanUpCaches(@Autowired CacheManager cacheManager) {
+    TestUtils.cleanUpCaches(cacheManager);
+  }
+
+  @AfterAll
+  static void afterAll() {
+    removeEnvProperty();
+  }
+
+  public static HttpHeaders defaultHeaders() {
+    return defaultHeaders(TENANT_ID);
+  }
+
+  public static HttpHeaders defaultHeaders(String tenant) {
+    var httpHeaders = new HttpHeaders();
+
+    httpHeaders.setContentType(APPLICATION_JSON);
+    httpHeaders.add(XOkapiHeaders.TENANT, tenant);
+    httpHeaders.add(XOkapiHeaders.URL, okapi.getOkapiUrl());
+
+    return httpHeaders;
+  }
+
+  @SneakyThrows
+  public static ResultActions attemptGet(String uri, Object... args) {
+    return attemptGet(uri, TENANT_ID, args);
+  }
+
+  @SneakyThrows
+  public static ResultActions attemptGet(String uri, String tenantId, Object... args) {
+    return mockMvc.perform(get(uri, args)
+      .headers(defaultHeaders(tenantId))
+      .accept("application/json;charset=UTF-8"));
+  }
+
+  @SneakyThrows
+  public static ResultActions doGet(String uri, Object... args) {
+    return mockMvc.perform(get(uri, args)
+        .headers(defaultHeaders())
+        .accept("application/json;charset=UTF-8"))
+      .andExpect(status().isOk());
+  }
+
+  @SneakyThrows
+  public static ResultActions doGet(MockHttpServletRequestBuilder request) {
+    return mockMvc.perform(request
+        .headers(defaultHeaders())
+        .accept("application/json;charset=UTF-8"))
+      .andExpect(status().isOk());
   }
 
   @Getter

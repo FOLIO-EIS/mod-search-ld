@@ -5,16 +5,25 @@ import static org.folio.search.sample.SampleAuthorities.getAuthorityNaturalId;
 import static org.folio.search.sample.SampleAuthorities.getAuthoritySampleAsMap;
 import static org.folio.search.sample.SampleAuthorities.getAuthoritySampleId;
 import static org.folio.search.sample.SampleAuthorities.getAuthoritySourceFileId;
+import static org.folio.search.support.base.ApiEndpoints.instanceSearchPath;
+import static org.folio.search.utils.TestConstants.TENANT_ID;
 import static org.folio.search.utils.TestUtils.parseResponse;
+import static org.folio.search.utils.TestUtils.randomId;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import java.util.List;
 import java.util.stream.Stream;
+import org.folio.search.domain.dto.AlternativeTitle;
 import org.folio.search.domain.dto.Authority;
 import org.folio.search.domain.dto.AuthoritySearchResult;
+import org.folio.search.domain.dto.Contributor;
+import org.folio.search.domain.dto.Instance;
+import org.folio.search.domain.dto.SeriesItem;
+import org.folio.search.domain.dto.Subject;
 import org.folio.search.support.base.BaseIntegrationTest;
-import org.folio.spring.test.type.IntegrationTest;
+import org.folio.spring.testing.type.IntegrationTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +42,22 @@ class SearchAuthorityIT extends BaseIntegrationTest {
   @BeforeAll
   static void prepare() {
     setUpTenant(Authority.class, 30, getAuthoritySampleAsMap());
+
+    //set up linked instances
+    var instance1 = new Instance().id(randomId()).title("test-resource")
+      .subjects(List.of(new Subject().value("s1").authorityId(getAuthoritySampleId())));
+    var instance2 = new Instance().id(randomId()).title("test-resource")
+      .contributors(List.of(new Contributor().name("c1").authorityId(getAuthoritySampleId())));
+    var instance3 = new Instance().id(randomId()).title("test-resource")
+      .alternativeTitles(List.of(new AlternativeTitle().alternativeTitle("a1").authorityId(getAuthoritySampleId())));
+    var instance4 = new Instance().id(randomId()).title("test-resource")
+      .series(List.of(new SeriesItem().value("s1").authorityId(getAuthoritySampleId())));
+
+    inventoryApi.createInstance(TENANT_ID, instance1);
+    inventoryApi.createInstance(TENANT_ID, instance2);
+    inventoryApi.createInstance(TENANT_ID, instance3);
+    inventoryApi.createInstance(TENANT_ID, instance4);
+    checkThatEventsFromKafkaAreIndexed(TENANT_ID, instanceSearchPath(), 4);
   }
 
   @AfterAll
@@ -44,6 +69,16 @@ class SearchAuthorityIT extends BaseIntegrationTest {
   @DisplayName("search by authorities (single authority found)")
   @ParameterizedTest(name = "[{index}] query={0}, value=''{1}''")
   void searchByAuthorities_parameterized(String query, String value) throws Exception {
+    doSearchByAuthorities(prepareQuery(query, value))
+      .andExpect(jsonPath("$.totalRecords", is(1)))
+      .andExpect(jsonPath("$.authorities[0].id", is(getAuthoritySampleId())));
+  }
+
+
+  @MethodSource("testCaseInsensitiveDataProvider")
+  @DisplayName("search by authorities (single authority found)")
+  @ParameterizedTest(name = "[{index}] query={0}, value=''{1}''")
+  void searchByAuthoritiesCaseInsensitive_parameterized(String query, String value) throws Exception {
     doSearchByAuthorities(prepareQuery(query, value))
       .andExpect(jsonPath("$.totalRecords", is(1)))
       .andExpect(jsonPath("$.authorities[0].id", is(getAuthoritySampleId())));
@@ -61,43 +96,43 @@ class SearchAuthorityIT extends BaseIntegrationTest {
     var response = doSearchByAuthorities(prepareQuery(query, value)).andExpect(jsonPath("$.totalRecords", is(30)));
     var actual = parseResponse(response, AuthoritySearchResult.class);
     assertThat(actual.getAuthorities()).asList().containsOnly(
-      authority("Personal Name", AUTHORIZED_TYPE, "Gary A. Wills", 0),
+      authority("Personal Name", AUTHORIZED_TYPE, "Gary A. Wills", 4),
       authority("Personal Name", REFERENCE_TYPE, "a sft personal name", null),
       authority("Personal Name", AUTH_REF_TYPE, "a saft personal name", null),
 
-      authority("Personal Name", AUTHORIZED_TYPE, "a personal title", 0),
+      authority("Personal Name", AUTHORIZED_TYPE, "a personal title", 4),
       authority("Personal Name", REFERENCE_TYPE, "a sft personal title", null),
       authority("Personal Name", AUTH_REF_TYPE, "a saft personal title", null),
 
-      authority("Corporate Name", AUTHORIZED_TYPE, "a corporate name", 0),
+      authority("Corporate Name", AUTHORIZED_TYPE, "a corporate name", 4),
       authority("Corporate Name", REFERENCE_TYPE, "a sft corporate name", null),
       authority("Corporate Name", AUTH_REF_TYPE, "a saft corporate name", null),
 
-      authority("Corporate Name", AUTHORIZED_TYPE, "a corporate title", 0),
+      authority("Corporate Name", AUTHORIZED_TYPE, "a corporate title", 4),
       authority("Corporate Name", REFERENCE_TYPE, "a sft corporate title", null),
       authority("Corporate Name", AUTH_REF_TYPE, "a saft corporate title", null),
 
-      authority("Conference Name", AUTHORIZED_TYPE, "a conference name", 0),
+      authority("Conference Name", AUTHORIZED_TYPE, "a conference name", 4),
       authority("Conference Name", REFERENCE_TYPE, "a sft conference name", null),
       authority("Conference Name", AUTH_REF_TYPE, "a saft conference name", null),
 
-      authority("Conference Name", AUTHORIZED_TYPE, "a conference title", 0),
+      authority("Conference Name", AUTHORIZED_TYPE, "a conference title", 4),
       authority("Conference Name", REFERENCE_TYPE, "a sft conference title", null),
       authority("Conference Name", AUTH_REF_TYPE, "a saft conference title", null),
 
-      authority("Geographic Name", AUTHORIZED_TYPE, "a geographic name", 0),
+      authority("Geographic Name", AUTHORIZED_TYPE, "a geographic name", 4),
       authority("Geographic Name", REFERENCE_TYPE, "a sft geographic name", null),
       authority("Geographic Name", AUTH_REF_TYPE, "a saft geographic name", null),
 
-      authority("Uniform Title", AUTHORIZED_TYPE, "an uniform title", 0),
+      authority("Uniform Title", AUTHORIZED_TYPE, "an uniform title", 4),
       authority("Uniform Title", REFERENCE_TYPE, "a sft uniform title", null),
       authority("Uniform Title", AUTH_REF_TYPE, "a saft uniform title", null),
 
-      authority("Topical", AUTHORIZED_TYPE, "a topical term", 0),
+      authority("Topical", AUTHORIZED_TYPE, "a topical term", 4),
       authority("Topical", REFERENCE_TYPE, "a sft topical term", null),
       authority("Topical", AUTH_REF_TYPE, "a saft topical term", null),
 
-      authority("Genre", AUTHORIZED_TYPE, "a genre term", 0),
+      authority("Genre", AUTHORIZED_TYPE, "a genre term", 4),
       authority("Genre", REFERENCE_TYPE, "a sft genre term", null),
       authority("Genre", AUTH_REF_TYPE, "a saft genre term", null)
     );
@@ -211,8 +246,13 @@ class SearchAuthorityIT extends BaseIntegrationTest {
       arguments("saftGenreTerm = {value}", "\"saft term\""),
       arguments("saftGenreTerm == {value}", "\"*saft gen*\""),
 
-      arguments(specifyCommonField("lccn = {value}"), "3745-1086"),
-      arguments(specifyCommonField("lccn = {value}"), "3745*"),
+      // search by lccn
+      arguments(specifyCommonField("lccn = {value}"), "2003065165"),
+      arguments(specifyCommonField("lccn = {value}"), "*65165"),
+      arguments(specifyCommonField("lccn = {value}"), "n 2003075732"),
+      arguments(specifyCommonField("lccn = {value}"), "N2003075732"),
+      arguments(specifyCommonField("lccn = {value}"), "*75732"),
+      arguments(specifyCommonField("lccn = {value}"), "20030*"),
 
       arguments(specifyCommonField("identifiers.value == {value}"), "authority-identifier"),
       arguments(specifyCommonField("identifiers.value all {value}"), "311417*"),
@@ -234,10 +274,112 @@ class SearchAuthorityIT extends BaseIntegrationTest {
     return query + " and sftPersonalName==\"*personal name\"";
   }
 
+  private static Stream<Arguments> testCaseInsensitiveDataProvider() {
+    return Stream.of(
+      arguments("keyword == {value}", "\"A PERSONAL TITLE\""),
+      arguments("keyword all {value}", "\"A SFT PERSONAL TITLE\""),
+      arguments("keyword == {value}", "\"A CORPORATE TITLE\""),
+      arguments("keyword all {value}", "\"A SFT CORPORATE TITLE\""),
+
+      arguments("personalName all {value}", "\"GARY A. WILLS\""),
+      arguments("personalName all {value}", "GARY"),
+      arguments("personalName == {value}", "\"GARY A.*\""),
+      arguments("sftPersonalName = {value}", "\"PERSONAL SFT NAME\""),
+      arguments("sftPersonalName == {value}", "\"SFT PERSONAL NAME\""),
+      arguments("sftPersonalName == {value}", "\"*PERSONA*\""),
+      arguments("saftPersonalName = {value}", "\"SAFT NAME\""),
+      arguments("saftPersonalName == {value}", "\"*SAFT PERSONA*\""),
+
+      arguments("personalNameTitle all {value}", "\"PERSONAL TITLE\""),
+      arguments("personalNameTitle == {value}", "\"A PERSONAL TITLE\""),
+      arguments("sftPersonalNameTitle all {value}", "\"PERSONAL TITLE\""),
+      arguments("sftPersonalNameTitle == {value}", "\"A SFT PERSONAL TITLE\""),
+      arguments("saftPersonalNameTitle all {value}", "\"A SAFT PERSONAL TITLE\""),
+      arguments("saftPersonalNameTitle == {value}", "\"A SAFT PERSONAL TITLE\""),
+
+      arguments("corporateName = {value}", "\"CORPORATE\""),
+      arguments("corporateName == {value}", "\"A CORPORATE NAME\""),
+      arguments("corporateName == {value}", "\"*CORPORAT*\""),
+      arguments("sftCorporateName = {value}", "\"CORPORATE NAME\""),
+      arguments("sftCorporateName == {value}", "\"SFT CORPORATE\""),
+      arguments("saftCorporateName = {value} ", "\"NAME SAFT\""),
+      arguments("saftCorporateName == {value} ", "\"SAFT CORPORATE NAME\""),
+
+      arguments("corporateNameTitle all {value}", "\"CORPORATE TITLE\""),
+      arguments("corporateNameTitle == {value}", "\"A CORPORATE TITLE\""),
+      arguments("sftCorporateNameTitle all {value}", "\"CORPORATE TITLE\""),
+      arguments("sftCorporateNameTitle == {value}", "\"A SFT CORPORATE TITLE\""),
+      arguments("saftCorporateNameTitle all {value}", "\"CORPORATE TITLE\""),
+      arguments("saftCorporateNameTitle == {value}", "\"A SAFT CORPORATE TITLE\""),
+
+      arguments("meetingName = {value}", "\"CONFERENCE\""),
+      arguments("meetingName == {value}", "\"A CONFERENCE NAME\""),
+      arguments("meetingName == {value}", "\"*ONFERENCE*\""),
+      arguments("sftMeetingName = {value}", "\"CONFERENCE NAME\""),
+      arguments("sftMeetingName == {value}", "\"SFT CONFERENCE\""),
+      arguments("saftMeetingName = {value} ", "\"CONFERENCE SAFT\""),
+      arguments("saftMeetingName == {value} ", "\"SAFT CONFERENCE NAME\""),
+
+      arguments("meetingNameTitle all {value}", "\"CONFERENCE TITLE\""),
+      arguments("meetingNameTitle == {value}", "\"A CONFERENCE TITLE\""),
+      arguments("sftMeetingNameTitle all {value}", "\"CONFERENCE TITLE\""),
+      arguments("sftMeetingNameTitle == {value}", "\"A SFT CONFERENCE TITLE\""),
+      arguments("saftMeetingNameTitle all {value}", "\"CONFERENCE TITLE\""),
+      arguments("saftMeetingNameTitle == {value}", "\"A SAFT CONFERENCE TITLE\""),
+
+      arguments("geographicName = {value}", "\"GEOGRAPHIC\""),
+      arguments("geographicName == {value}", "\"A GEOGRAPHIC NAME\""),
+      arguments("geographicName == {value}", "\"*GRAPH*\""),
+      arguments("sftGeographicName = {value}", "\"GEOGRAPHIC NAME\""),
+      arguments("sftGeographicName == {value}", "\"SFT GEOGRAPHIC\""),
+      arguments("saftGeographicName = {value} ", "\"GEOGRAPHIC SAFT\""),
+      arguments("saftGeographicName == {value} ", "\"SAFT GEOGRAPHIC NAME\""),
+
+      arguments("uniformTitle = {value}", "\"UNIFORM\""),
+      arguments("uniformTitle == {value}", "\"AN UNIFORM TITLE\""),
+      arguments("uniformTitle == {value}", "\"*NIFOR*\""),
+      arguments("sftUniformTitle = {value}", "\"UNIFORM TITLE\""),
+      arguments("sftUniformTitle == {value}", "\"SFT UNIFORM\""),
+      arguments("saftUniformTitle = {value} ", "\"TITLE SAFT\""),
+      arguments("saftUniformTitle == {value} ", "\"SAFT UNIFORM TITLE\""),
+
+      arguments("topicalTerm all {value}", "\"A TOPICAL TERM\""),
+      arguments("topicalTerm all {value}", "TOPICAL"),
+      arguments("topicalTerm == {value}", "\"A TOP*\""),
+      arguments("sftTopicalTerm = {value}", "\"SFT TOPICAL TERM\""),
+      arguments("sftTopicalTerm == {value}", "\"*TOP*\""),
+      arguments("saftTopicalTerm = {value}", "\"SAFT TERM\""),
+      arguments("saftTopicalTerm == {value}", "\"*SAFT TOP*\""),
+
+      arguments("genreTerm all {value}", "\"A GENRE TERM\""),
+      arguments("genreTerm all {value}", "GENRE"),
+      arguments("genreTerm == {value}", "\"A GEN*\""),
+      arguments("sftGenreTerm = {value}", "\"SFT GENRE TERM\""),
+      arguments("sftGenreTerm == {value}", "\"*GEN*\""),
+      arguments("saftGenreTerm = {value}", "\"SAFT TERM\""),
+      arguments("saftGenreTerm == {value}", "\"*SAFT GEN*\""),
+
+      // search by lccn
+      arguments(specifyCommonField("lccn = {value}"), "N 2003075732"),
+      arguments(specifyCommonField("lccn = {value}"), "N2003075732"),
+
+
+      arguments(specifyCommonField("identifiers.value == {value}"), "AUTHORITY-IDENTIFIER"),
+      arguments(specifyCommonField("identifiers.value all ({value})"),
+        "AUTHORITY-IDENTIFIER OR 3114176276 OR 0000-0000"),
+      arguments(specifyCommonField("identifiers.value all ({value})"),
+        "AUTHORITY-IDENTIFIER AND 3114176276 AND 3745-1086"),
+      arguments(specifyCommonField("identifiers.identifierTypeId == {value}"), "D6F3C637-3969-4DC6-9146-6371063F049E")
+
+      );
+  }
+
   private static Authority authority(String headingType, String authRefType, String headingRef,
                                      Integer numberOfTitles) {
     return new Authority()
       .id(getAuthoritySampleId())
+      .tenantId(TENANT_ID)
+      .shared(false)
       .sourceFileId(getAuthoritySourceFileId())
       .naturalId(getAuthorityNaturalId())
       .headingType(headingType)

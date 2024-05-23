@@ -2,14 +2,14 @@ package org.folio.search.controller;
 
 import static org.folio.search.sample.SampleInstances.getSemanticWebAsMap;
 import static org.folio.search.sample.SampleInstances.getSemanticWebId;
-import static org.folio.search.support.base.ApiEndpoints.holdingIds;
+import static org.folio.search.support.base.ApiEndpoints.holdingIdsPath;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.util.List;
 import org.folio.search.domain.dto.Instance;
 import org.folio.search.support.base.BaseIntegrationTest;
-import org.folio.spring.test.type.IntegrationTest;
+import org.folio.spring.testing.type.IntegrationTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -92,7 +92,7 @@ class SearchHoldingsIT extends BaseIntegrationTest {
 
   @Test
   void streamHoldingIds() throws Exception {
-    doGet(holdingIds("id=*"))
+    doGet(holdingIdsPath("id=*"))
       .andExpect(jsonPath("totalRecords", is(3)))
       .andExpect(jsonPath("ids[*].id", is(List.of(
         "e3ff6133-b9a2-4d4c-a1c9-dc1867d4df19",

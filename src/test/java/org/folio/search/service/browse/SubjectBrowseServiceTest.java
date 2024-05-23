@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.folio.search.utils.TestConstants.TENANT_ID;
 import static org.folio.search.utils.TestUtils.searchResult;
 import static org.folio.search.utils.TestUtils.subjectBrowseItem;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
@@ -14,17 +17,23 @@ import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.search.sort.SortOrder.DESC;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.folio.search.model.BrowseResult;
 import org.folio.search.model.ResourceRequest;
 import org.folio.search.model.SearchResult;
+import org.folio.search.model.index.InstanceSubResource;
 import org.folio.search.model.index.SubjectResource;
 import org.folio.search.model.service.BrowseContext;
 import org.folio.search.model.service.BrowseRequest;
 import org.folio.search.repository.SearchRepository;
+import org.folio.search.service.consortium.ConsortiumSearchHelper;
 import org.folio.search.service.converter.ElasticsearchDocumentConverter;
-import org.folio.spring.test.type.UnitTest;
+import org.folio.search.service.setter.SearchResponsePostProcessor;
+import org.folio.spring.testing.type.UnitTest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -54,7 +63,21 @@ class SubjectBrowseServiceTest {
   @Mock
   private ElasticsearchDocumentConverter documentConverter;
   @Mock
+  private ConsortiumSearchHelper consortiumSearchHelper;
+  @Mock
   private SearchResponse searchResponse;
+  @Mock
+  private Map<Class<?>, SearchResponsePostProcessor<?>> searchResponsePostProcessors = Collections.emptyMap();
+
+  @BeforeEach
+  public void setUpMocks() {
+    doAnswer(invocation -> invocation.getArgument(1))
+      .when(consortiumSearchHelper).filterBrowseQueryForActiveAffiliation(any(), any(), any());
+    lenient().doAnswer(invocation -> ((SubjectResource) invocation.getArgument(1)).getInstances())
+      .when(consortiumSearchHelper).filterSubResourcesForConsortium(any(), any(), any());
+    lenient().when(searchRepository.analyze(any(), any(), any(), any()))
+      .thenAnswer(invocation -> invocation.getArgument(0));
+  }
 
   @Test
   void browse_positive_forward() {
@@ -248,11 +271,13 @@ class SubjectBrowseServiceTest {
 
     when(browseContextProvider.get(request)).thenReturn(browseContextAround(true));
     mockMultiSearchRequest(request,
-      List.of(searchSource("s0", 3, DESC), searchSource("s0", 4, ASC), subjectTermQuery("s0", 3)),
+      List.of(subjectTermQuery("s0", 3)),
+      List.of(searchResult(browseItems("s0"))));
+    mockMultiSearchRequest(request,
+      List.of(searchSource("s0", 3, DESC), searchSource("s0", 4, ASC)),
       List.of(
         searchResult(10, browseItems("r2", "r1", "r0")),
-        searchResult(10, browseItems("s1", "s2", "s3")),
-        searchResult(browseItems("s0"))));
+        searchResult(10, browseItems("s1", "s2", "s3"))));
 
     var actual = subjectBrowseService.browse(request);
     assertThat(actual).isEqualTo(BrowseResult.of(10, "r1", "s2", List.of(
@@ -267,11 +292,13 @@ class SubjectBrowseServiceTest {
 
     when(browseContextProvider.get(request)).thenReturn(browseContextAround(true));
     mockMultiSearchRequest(request,
-      List.of(searchSource("s0", 3, DESC), searchSource("s0", 4, ASC), subjectTermQuery("s0", 3)),
+      List.of(subjectTermQuery("s0", 3)),
+      List.of(searchResult(browseItems("s0", "s0"))));
+    mockMultiSearchRequest(request,
+      List.of(searchSource("s0", 3, DESC), searchSource("s0", 4, ASC)),
       List.of(
         searchResult(10, browseItems("r2", "r1", "r0")),
-        searchResult(10, browseItems("s1", "s2", "s3")),
-        searchResult(browseItems("s0", "s0"))));
+        searchResult(10, browseItems("s1", "s2", "s3"))));
 
     var actual = subjectBrowseService.browse(request);
     assertThat(actual).isEqualTo(BrowseResult.of(10, "r1", "s1", List.of(
@@ -286,11 +313,13 @@ class SubjectBrowseServiceTest {
 
     when(browseContextProvider.get(request)).thenReturn(browseContextAround(true));
     mockMultiSearchRequest(request,
-      List.of(searchSource("s0", 3, DESC), searchSource("s0", 4, ASC), subjectTermQuery("s0", 3)),
+      List.of(subjectTermQuery("s0", 3)),
+      List.of(searchResult(browseItems("s0"))));
+    mockMultiSearchRequest(request,
+      List.of(searchSource("s0", 3, DESC), searchSource("s0", 4, ASC)),
       List.of(
         SearchResult.of(10, List.of(browseItems("r2", "r1"))),
-        searchResult(browseItems("s1", "s2", "s3")),
-        searchResult(browseItems("s0"))));
+        searchResult(browseItems("s1", "s2", "s3"))));
 
     var actual = subjectBrowseService.browse(request);
     assertThat(actual).isEqualTo(BrowseResult.of(10, null, "s2", List.of(
@@ -304,12 +333,12 @@ class SubjectBrowseServiceTest {
     var request = BrowseRequest.of(INSTANCE_SUBJECT, TENANT_ID, query, 5, TARGET_FIELD, null, null, true, 2);
 
     when(browseContextProvider.get(request)).thenReturn(browseContextAround(true));
+    mockAnchorEmptyResponse(request);
     mockMultiSearchRequest(request,
-      List.of(searchSource("s0", 3, DESC), searchSource("s0", 4, ASC), subjectTermQuery("s0", 3)),
+      List.of(searchSource("s0", 3, DESC), searchSource("s0", 4, ASC)),
       List.of(
         SearchResult.of(10, List.of(browseItems("r2", "r1", "r0"))),
-        searchResult(browseItems("s1", "s2", "s3", "s4")),
-        SearchResult.empty()));
+        searchResult(browseItems("s1", "s2", "s3", "s4"))));
 
     var actual = subjectBrowseService.browse(request);
     assertThat(actual).isEqualTo(BrowseResult.of(10, "r1", "s2", List.of(
@@ -323,12 +352,12 @@ class SubjectBrowseServiceTest {
     var request = BrowseRequest.of(INSTANCE_SUBJECT, TENANT_ID, query, 5, TARGET_FIELD, null, null, false, 2);
 
     when(browseContextProvider.get(request)).thenReturn(browseContextAround(true));
+    mockAnchorEmptyResponse(request);
     mockMultiSearchRequest(request,
-      List.of(searchSource("s0", 3, DESC), searchSource("s0", 4, ASC), subjectTermQuery("s0", 3)),
+      List.of(searchSource("s0", 3, DESC), searchSource("s0", 4, ASC)),
       List.of(
         SearchResult.of(10, List.of(browseItems("r2", "r1", "r0"))),
-        searchResult(browseItems("s1", "s2", "s3", "s4")),
-        SearchResult.empty()));
+        searchResult(browseItems("s1", "s2", "s3", "s4"))));
 
     var actual = subjectBrowseService.browse(request);
     assertThat(actual).isEqualTo(BrowseResult.of(10, "r1", "s3", List.of(
@@ -336,11 +365,19 @@ class SubjectBrowseServiceTest {
       subjectBrowseItem(2, "s2"), subjectBrowseItem(2, "s3"))));
   }
 
+  private void mockAnchorEmptyResponse(BrowseRequest request) {
+    mockMultiSearchRequest(request,
+      List.of(subjectTermQuery("s0", 3)),
+      List.of(SearchResult.empty()));
+  }
+
   private SubjectResource[] browseItems(String... subject) {
     return Arrays.stream(subject).map(sub -> {
       var subjectResource = new SubjectResource();
       subjectResource.setValue(sub);
-      subjectResource.setInstances(sub.chars().mapToObj(String::valueOf).collect(Collectors.toSet()));
+      subjectResource.setInstances(sub.chars().mapToObj(String::valueOf)
+        .map(s -> InstanceSubResource.builder().instanceId(s).build())
+        .collect(Collectors.toSet()));
       return subjectResource;
     }).toArray(SubjectResource[]::new);
   }
@@ -357,7 +394,7 @@ class SubjectBrowseServiceTest {
   }
 
   private SearchSourceBuilder subjectTermQuery(String subjectValue, int size) {
-    return searchSource(termQuery(TARGET_FIELD, subjectValue)).from(0).size(size);
+    return searchSource(termQuery(TARGET_FIELD, subjectValue)).from(0).size(size).sort(TARGET_FIELD);
   }
 
   private BrowseContext browseContextAround(boolean includeAnchor) {

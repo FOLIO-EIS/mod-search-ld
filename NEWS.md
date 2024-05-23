@@ -1,12 +1,147 @@
-## v2.0.1 2023-03-28
+## v3.3.0 YYYY-mm-DD
+### Breaking changes
+* Description ([ISSUE_NUMBER](https://folio-org.atlassian.net/browse/ISSUE_NUMBER))
+
+### New APIs versions
+* Provides `indices v0.7`
+* Provides `search v1.3`
+* Requires `locations v3.0`
+* Provides `consortium-search v1.1`
+
+### Features
+* Create location index and process location events ([MSEARCH-703](https://issues.folio.org/browse/MSEARCH-703))
+* Implement reindexing of locations ([MSEARCH-702](https://issues.folio.org/browse/MSEARCH-702))
+* Modify diacritics handling in search, browse and sorting ([MSEARCH-690](https://issues.folio.org/browse/MSEARCH-690))
+* Instance search: add search option that search instances by normalized classification number ([MSEARCH-697](https://issues.folio.org/browse/MSEARCH-697))
+* Instance search: make "all" search field option to search by full-text fields ([MSEARCH-606](https://issues.folio.org/browse/MSEARCH-606))
+* Facets: add support for instance classification facets ([MSEARCH-606](https://issues.folio.org/browse/MSEARCH-606))
+* Return Unified List of Inventory Locations in a Consortium ([MSEARCH-681](https://folio-org.atlassian.net/browse/MSEARCH-681))
+* Remove ability to match on LCCN searches without a prefix ([MSEARCH-752](https://folio-org.atlassian.net/browse/MSEARCH-752))
+
 ### Bug fixes
-* Call number browse: do an additional query for preceding records when none returned ([MSEARCH-503](https://issues.folio.org/browse/MSEARCH-503))
-* Contributor browse: Stabilize response sorting order ([MSEARCH-510](https://issues.folio.org/browse/MSEARCH-510))
+* Do not delete kafka topics if collection topic is enabled ([MSEARCH-725](https://folio-org.atlassian.net/browse/MSEARCH-725))
+* Do additional search request on browse before getting backward succeeding in order to find preceding results ([MSEARCH-705](https://folio-org.atlassian.net/browse/MSEARCH-705))
+* Keep right context in resource-id thread ([MSEARCH-754](https://folio-org.atlassian.net/browse/MSEARCH-754))
+* Browse: Duplicate results in exact match with diacritics ([MSEARCH-751](https://folio-org.atlassian.net/browse/MSEARCH-751))
+
+### Tech Dept
+* Re-Index: delete all records from consortium_instance on full re-index ([MSEARCH-744](https://folio-org.atlassian.net/browse/MSEARCH-744))
 
 ### Dependencies
-* Bump `spring-boot-starter-parent` from `3.0.2` to `3.0.5`
-* Bump `spring-kafka` from `3.0.2` to `3.0.5`
-* Bump `folio-spring-base` from `6.0.0` to `6.1.0`
+* Bump `LIB_NAME` from `OLD_VERSION` to `NEW_VERSION`
+* Add `LIB_NAME` `2.7.4`
+* Remove `LIB_NAME`
+
+---
+
+## v3.2.0 2024-03-20
+### New APIs versions
+* Requires `classification-types v1.2`
+* Provides `browse v1.3`
+* Provides `browse-config v1.0`
+* Provides `consortium-search v1.0`
+
+### Features
+* Update module descriptor with environment variables ([MSEARCH-635](https://issues.folio.org/browse/MSEARCH-635))
+* Add filter to ignore hard-delete authority events ([MSEARCH-617](https://issues.folio.org/browse/MSEARCH-617))
+* Update LccnProcessor to populate lccn field with only "LCCN" ([MSEARCH-630](https://issues.folio.org/browse/MSEARCH-630))
+* Make maximum offset for additional elasticsearch request on browse configurable ([MSEARCH-641](https://issues.folio.org/browse/MSEARCH-641))
+* Make system user usage optional ([MSEARCH-631](https://issues.folio.org/browse/MSEARCH-631))
+* Prepare and populate database for classification browse ([MSEARCH-667](https://issues.folio.org/browse/MSEARCH-667))
+* Prepare and populate index for classification browse ([MSEARCH-668](https://issues.folio.org/browse/MSEARCH-668))
+* Instance search: Add query search option that search instances by normalized LCCN ([MSEARCH-661](https://issues.folio.org/browse/MSEARCH-661))
+* Implement browse config management endpoints ([MSEARCH-674](https://issues.folio.org/browse/MSEARCH-674))
+* Implement endpoint to browse by classifications ([MSEARCH-665](https://issues.folio.org/browse/MSEARCH-665))
+* Synchronize browse config with classification types changes ([MSEARCH-683](https://issues.folio.org/browse/MSEARCH-683))
+* Authority search: Modify query search option to search authorities by normalized LCCN ([MSEARCH-663](https://issues.folio.org/browse/MSEARCH-663))
+* Add ability to case-insensitive search ISSNs with trailing roman numerals ([MSEARCH-672](https://folio-org.atlassian.net/browse/MSEARCH-672))
+* Remove call number format validation for shelving order generation ([MSEARCH-689](https://folio-org.atlassian.net/browse/MSEARCH-689))
+* Implement endpoint for consolidate holdings access in consortium ([MSEARCH-692](https://folio-org.atlassian.net/browse/MSEARCH-692))
+* Implement endpoint for consolidate items access in consortium ([MSEARCH-693](https://folio-org.atlassian.net/browse/MSEARCH-693))
+* Make Inventory and Authority searches case-insensitive ([MSEARCH-696](https://folio-org.atlassian.net/browse/MSEARCH-696))
+
+### Bug fixes
+* Fix secure setup of system users by default ([MSEARCH-608](https://issues.folio.org/browse/MSEARCH-608))
+* Fix result filtering for items.effectiveLocationId ([MSEARCH-615](https://issues.folio.org/browse/MSEARCH-615))
+* Ignore authority shadow copies while indexing ([MSEARCH-638](https://issues.folio.org/browse/MSEARCH-638))
+* Return result only for desired cn type on browse ([MSEARCH-605](https://issues.folio.org/browse/MSEARCH-605))
+* Fix clearing following filters in FacetService: items.effectiveLocationId, holdings.tenantId ([MSEARCH-620](https://issues.folio.org/browse/MSEARCH-620))
+* Fix shared filter for subjects/contributors ([MSEARCH-639](https://issues.folio.org/browse/MSEARCH-639))
+* Fix shadow instance's subjects/contributors indexing ([MSEARCH-647](https://issues.folio.org/browse/MSEARCH-647))
+* Mark all exact matches as anchors if there is more then one match ([MSEARCH-669](https://issues.folio.org/browse/MSEARCH-669))
+* Make POST /search/resources/jobs endpoint to work asynchronously ([MSEARCH-685](https://issues.folio.org/browse/MSEARCH-685))
+
+### Tech Dept
+* Fix log level and message wording for uniform titles ([MSEARCH-666](https://issues.folio.org/browse/MSEARCH-666))
+* Update development.md for local environment testing ([MSEARCH-592](https://issues.folio.org/browse/MSEARCH-592))
+* Clean up API documentation to enable checking of the request/response bodies samples([MSEARCH-546](https://issues.folio.org/browse/MSEARCH-546))
+
+### Dependencies
+* Bump `spring-boot` from `3.1.5` to `3.2.3`
+* Bump `folio-spring-support` from `7.2.0` to `8.1.0`
+* Bump `folio-service-tools` from `3.1.0` to `4.0.0`
+* Bump `folio-cql2pgjson` from `35.1.0` to `35.2.0`
+* Bump `opensearch` from `2.9.0` to `2.12.0`
+* Bump `apache-commons-io` from `2.15.0` to `2.15.1`
+* Bump `lombok` from `1.18.30` to `1.18.32`
+
+---
+
+## v3.0.0 2023-10-13
+### New APIs versions
+* Remove required `instance-authority-links`
+* Requires `alternative-title-types v1.0`
+* Requires `identifier-types v1.0`
+* Requires `call-number-types v1.0`
+* Provides `indices v0.6`
+* Provides `search v1.2`
+* Provides `browse v1.2`
+
+### Features
+* Extend call-numbers browse endpoint to support filtering by types ([MSEARCH-514](https://issues.folio.org/browse/MSEARCH-514))
+* Endpoint POST /search/resources/jobs have to be able to use long queries ([MSEARCH-520](https://issues.folio.org/browse/MSEARCH-520))
+* Extend `reindex` endpoint with passing index settings ([MSEARCH-437](https://issues.folio.org/browse/MSEARCH-437))
+* Create `PUT /search/index/settings` endpoint to update index settings  ([MSEARCH-436](https://issues.folio.org/browse/MSEARCH-436))
+* Add browse option for NLM call number type  ([MSEARCH-527](https://issues.folio.org/browse/MSEARCH-527))
+* Implement consortium index management  ([MSEARCH-531](https://issues.folio.org/browse/MSEARCH-531))
+* Add shared, tenantId flags to mapping for consortium ([MSEARCH-532](https://issues.folio.org/browse/MSEARCH-532))
+* Implement indexing for consortium tenants  ([MSEARCH-554](https://issues.folio.org/browse/MSEARCH-554))
+* Implement Active Affiliation Context for Search in Consortia Mode  ([MSEARCH-533](https://issues.folio.org/browse/MSEARCH-533))
+* Add tenantId/shared fields to contributors/subjects ([MSEARCH-551](https://issues.folio.org/browse/MSEARCH-551))
+* Implement Active Affiliation Context for stream IDs in Consortia Mode ([MSEARCH-576](https://issues.folio.org/browse/MSEARCH-576))
+* Restrict central tenant queries to only shared records ([MSEARCH-588](https://issues.folio.org/browse/MSEARCH-588))
+* Implement Active Affiliation Context for browsing ([MSEARCH-580](https://issues.folio.org/browse/MSEARCH-580))
+* Add new facets for shared/local flag and tenantId ([MSEARCH-534](https://issues.folio.org/browse/MSEARCH-534))
+* Implement SuDoc call number type ([MSEARCH-569](https://issues.folio.org/browse/MSEARCH-569))
+* Adjust GET /search/authorities to not include titles numberOfTitles ([MSEARCH-518](https://issues.folio.org/browse/MSEARCH-518))
+
+### Bug fixes
+* Fix bug when number of titles response is greater than real ([MSEARCH-526](https://issues.folio.org/browse/MSEARCH-526))
+* Fix handling of invalid resource names in index management endpoints ([MSEARCH-540](https://issues.folio.org/browse/MSEARCH-540))
+* Improve preceding records searching ([MSEARCH-552](https://issues.folio.org/browse/MSEARCH-552))
+* Includes records with the same first 10 characters of the shelving order in preceding result ([MSEARCH-544](https://issues.folio.org/browse/MSEARCH-544))
+* Fix searching by the first call number from browse result list ([MSEARCH-513](https://issues.folio.org/browse/MSEARCH-513))
+
+### Tech Dept
+* Change logic of linked titles count on authority search/browse ([MSEARCH-501](https://issues.folio.org/browse/MSEARCH-501))
+* Kafka topic deletion by tenant id added when tenant disabled ([MSEARCH-541](https://issues.folio.org/browse/MSEARCH-541))
+* Logging improvement ([MSEARCH-299](https://issues.folio.org/browse/MSEARCH-299))
+* Allow Kafka Tenant Collection Topics ([MSEARCH-596](https://issues.folio.org/browse/MSEARCH-596))
+
+### Dependencies
+* Bump `folio-spring-support` from `6.1.0` to `7.2.0`
+* Bump `folio-isbn-utils` from `1.5.0` to `1.6.0`
+* Bump `folio-cql2pgjson` from `35.0.6` to `35.1.0`
+* Bump `spring-boot-starter-parent` from `3.0.5` to `3.1.4`
+* Bump `spring-kafka` from `3.0.5` to `3.0.11`
+* Bump `opensearch` from `2.5.0` to `2.9.0`
+* Bump `mapstruct` from `1.5.3.Final` to `1.5.5.Final`
+* Bump `lombok` from `1.18.26` to `1.18.30`
+* Bump `apache-commons-io` from `2.11.0` to `2.14.0`
+* Bump `marc4j` from `2.9.2` to `2.9.5`
+* Add `folio-service-tools` `3.1.0`
+
+---
 
 ## v2.0.0 2023-02-16
 ### Breaking changes
